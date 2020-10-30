@@ -20,6 +20,7 @@ func NewUserHandler(userUseCase *usecases.UserUseCase) *UserHandler {
 func (uh *UserHandler) Configure(e *echo.Echo) {
 	e.POST("api/v1/user/:nickname/create", uh.CreateProfileHandler())
 	e.GET("api/v1/user/:nickname/profile", uh.GetProfileHandler())
+	e.POST("api/v1/user/:nickname/profile", uh.ChangeProfileHandler())
 }
 
 type Message struct {
@@ -73,5 +74,37 @@ func (uh *UserHandler) GetProfileHandler() echo.HandlerFunc {
 		}
 
 		return context.JSON(http.StatusCreated, dbProfile)
+	}
+}
+
+func (uh *UserHandler) ChangeProfileHandler() echo.HandlerFunc {
+	type ChangeRequest struct {
+		Fullname string `json:"fullname"`
+		About    string `json:"about"`
+		Email    string `json:"email"`
+	}
+
+	return func(context echo.Context) error {
+		nickname := context.Param("nickname")
+
+		req := &ChangeRequest{}
+		if err := reader.NewRequestReader(context).Read(req); err != nil {
+			logrus.Info(err.DebugMessage)
+			return context.JSON(err.HTTPCode, Message{Message: err.UserMessage})
+		}
+
+		profile := &models.User{
+			Nickname: nickname,
+			Fullname: req.Fullname,
+			About:    req.About,
+			Email:    req.Email,
+		}
+
+		if err := uh.userUseCase.UpdateUserInfo(nickname, profile); err != nil {
+			logrus.Info(err.DebugMessage)
+			return context.JSON(err.HTTPCode, Message{Message: err.UserMessage})
+		}
+
+		return context.JSON(http.StatusOK, profile)
 	}
 }
