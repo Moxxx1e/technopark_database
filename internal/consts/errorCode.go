@@ -6,4 +6,6 @@ const (
 	CodeBadRequest = iota + 101
 	CodeInternalServerError
 	CodeUserDoesNotExist
+	CodeUserNicknameConflicts
+	CodeUserEmailConflicts
 )

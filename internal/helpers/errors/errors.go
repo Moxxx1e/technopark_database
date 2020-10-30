@@ -54,4 +54,16 @@ var Errors = map[ErrorCode]*Error{
 		DebugMessage: "user with this nickname doesn't exist",
 		UserMessage:  "Can't find user with this nickname",
 	},
+	CodeUserNicknameConflicts: {
+		Code:         CodeUserEmailConflicts,
+		HTTPCode:     http.StatusConflict,
+		DebugMessage: "user with this nickname already exists",
+		UserMessage:  "Input nickname already exists",
+	},
+	CodeUserEmailConflicts: {
+		Code:         CodeUserEmailConflicts,
+		HTTPCode:     http.StatusConflict,
+		DebugMessage: "user with this email already exists",
+		UserMessage:  "Input email already exists",
+	},
 }
