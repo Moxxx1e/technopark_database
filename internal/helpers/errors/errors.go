@@ -48,4 +48,10 @@ var Errors = map[ErrorCode]*Error{
 		DebugMessage: "something went wrong",
 		UserMessage:  "Error on server",
 	},
+	CodeUserDoesNotExist: {
+		Code:         CodeUserDoesNotExist,
+		HTTPCode:     http.StatusNotFound,
+		DebugMessage: "user with this nickname doesn't exist",
+		UserMessage:  "Can't find user with this nickname",
+	},
 }

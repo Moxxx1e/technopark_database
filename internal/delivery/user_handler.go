@@ -19,6 +19,7 @@ func NewUserHandler(userUseCase *usecases.UserUseCase) *UserHandler {
 
 func (uh *UserHandler) Configure(e *echo.Echo) {
 	e.POST("api/v1/user/:nickname/create", uh.CreateProfileHandler())
+	e.GET("api/v1/user/:nickname/profile", uh.GetProfileHandler())
 }
 
 type Message struct {
@@ -54,5 +55,23 @@ func (uh *UserHandler) CreateProfileHandler() echo.HandlerFunc {
 		}
 
 		return context.JSON(http.StatusCreated, profile)
+	}
+}
+
+func (uh *UserHandler) GetProfileHandler() echo.HandlerFunc {
+	type GetProfileResponse struct {
+		Message string `json:"message"`
+	}
+
+	return func(context echo.Context) error {
+		nickname := context.Param("nickname")
+
+		dbProfile, err := uh.userUseCase.GetUserInfo(nickname)
+		if err != nil {
+			logrus.Info(err.DebugMessage)
+			return context.JSON(err.HTTPCode, Message{Message: err.UserMessage})
+		}
+
+		return context.JSON(http.StatusCreated, dbProfile)
 	}
 }
