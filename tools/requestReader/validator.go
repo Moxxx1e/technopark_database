@@ -3,6 +3,8 @@ package requestReader
 import (
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
+	. "github.com/technopark_database/internal/consts"
+	"github.com/technopark_database/internal/helpers/errors"
 )
 
 type RequestReader struct {
@@ -17,13 +19,13 @@ func NewRequestReader(cntx echo.Context) *RequestReader {
 	}
 }
 
-func (rr *RequestReader) Read(request interface{}) error {
+func (rr *RequestReader) Read(request interface{}) *errors.Error {
 	if err := rr.cntx.Bind(request); err != nil {
-		return err
+		return errors.Get(CodeInternalServerError)
 	}
 
 	if err := rr.validator.Struct(request); err != nil {
-		return err
+		return errors.Get(CodeBadRequest)
 	}
 	return nil
 }
