@@ -2,10 +2,10 @@ package delivery
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/sirupsen/logrus"
 	"github.com/technopark_database/internal/models"
 	"github.com/technopark_database/internal/user/usecases"
 	reader "github.com/technopark_database/tools/requestReader"
-	"log"
 	"net/http"
 )
 
@@ -21,6 +21,10 @@ func (uh *UserHandler) Configure(e *echo.Echo) {
 	e.POST("api/v1/user/:nickname/create", uh.CreateProfileHandler())
 }
 
+type Message struct {
+	Message string `json:"message"`
+}
+
 func (uh *UserHandler) CreateProfileHandler() echo.HandlerFunc {
 	type CreateRequest struct {
 		Fullname string `json:"fullname"`
@@ -33,8 +37,8 @@ func (uh *UserHandler) CreateProfileHandler() echo.HandlerFunc {
 
 		req := &CreateRequest{}
 		if err := reader.NewRequestReader(context).Read(req); err != nil {
-			log.Println(err)
-			return context.JSON(http.StatusBadRequest, err)
+			logrus.Info(err.DebugMessage)
+			return context.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
 		profile := &models.User{
@@ -44,18 +48,9 @@ func (uh *UserHandler) CreateProfileHandler() echo.HandlerFunc {
 			Email:    req.Email,
 		}
 
-		dbProfile, err := uh.userUseCase.GetUserInfo(nickname)
-		if err != nil {
-			log.Println(err)
-			return context.JSON(http.StatusInternalServerError, err)
-		}
-		if dbProfile != nil {
-			return context.JSON(http.StatusConflict, dbProfile)
-		}
-
 		if err := uh.userUseCase.Create(profile); err != nil {
-			log.Println(err)
-			return context.JSON(http.StatusInternalServerError, err)
+			logrus.Info(err.DebugMessage)
+			return context.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
 		return context.JSON(http.StatusCreated, profile)
