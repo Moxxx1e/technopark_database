@@ -6,7 +6,8 @@ import (
 )
 
 type UserUseCase interface {
-	Create(user *models.User) *errors.Error
-	UpdateUserInfo(nickname string, user *models.User) *errors.Error
+	Create(user *models.User) ([]*models.User, *errors.Error)
+	Change(user *models.User) (*models.User, *errors.Error)
 	GetUserInfo(nickname string) (*models.User, *errors.Error)
+	IsExist(nickname string) (bool, *errors.Error)
 }

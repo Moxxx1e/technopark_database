@@ -3,14 +3,16 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"github.com/sirupsen/logrus"
 	"github.com/technopark_database/internal/models"
+	"github.com/technopark_database/internal/user"
 )
 
 type UserPgRepository struct {
 	db *sql.DB
 }
 
-func NewUserPgRepository(db *sql.DB) *UserPgRepository {
+func NewUserPgRepository(db *sql.DB) user.UserRepository {
 	return &UserPgRepository{db: db}
 }
 
@@ -20,11 +22,14 @@ func (ur *UserPgRepository) Insert(user *models.User) error {
 		return err
 	}
 
-	_, err = tx.Exec(`INSERT INTO profile(nickname, fullname, about, email)
-		VALUES ($1, $2, $3, $4)`,
-		user.Nickname, user.Fullname, user.About, user.Email)
+	err = tx.QueryRow(`
+		INSERT INTO users(nickname, fullname, about, email)
+		VALUES ($1, $2, $3, $4) RETURNING id`,
+		user.Nickname, user.Fullname, user.About, user.Email).Scan(&user.ID)
 	if err != nil {
-		_ = tx.Rollback()
+		if err := tx.Rollback(); err != nil {
+			logrus.Error(err)
+		}
 		return err
 	}
 
@@ -38,10 +43,10 @@ func (ur *UserPgRepository) Insert(user *models.User) error {
 func (ur *UserPgRepository) Select(nickname string) (*models.User, error) {
 	dbUser := &models.User{}
 	err := ur.db.QueryRow(`
-		SELECT nickname, fullname, about, email
-		FROM profile
-		WHERE nickname=$1`, nickname).Scan(
-		&dbUser.Nickname, &dbUser.Fullname,
+		SELECT id, nickname, fullname, about, email
+		FROM users
+		WHERE nickname ILIKE $1`, nickname).Scan(
+		&dbUser.ID, &dbUser.Nickname, &dbUser.Fullname,
 		&dbUser.About, &dbUser.Email)
 	if err != nil {
 		return nil, err
@@ -49,37 +54,40 @@ func (ur *UserPgRepository) Select(nickname string) (*models.User, error) {
 	return dbUser, nil
 }
 
-func (ur *UserPgRepository) Update(nickname string, newUser *models.User) error {
+func (ur *UserPgRepository) Update(newUser *models.User) error {
 	tx, err := ur.db.BeginTx(context.Background(), &sql.TxOptions{})
 	if err != nil {
 		return err
 	}
 
 	_, err = tx.Exec(`
-		UPDATE profile 
-		SET nickname = $1,
-		    fullname = $2,
-            about = $3,
-		    email = $4
-		WHERE nickname=$5`, newUser.Nickname, newUser.Fullname, newUser.About, newUser.Email, nickname)
+		UPDATE users
+		SET email = $2, about = $3, fullname = $4
+		WHERE nickname = $1`,
+		newUser.Nickname, newUser.Email, newUser.About, newUser.Fullname)
 	if err != nil {
-		_ = tx.Rollback()
+		if err := tx.Rollback(); err != nil {
+			logrus.Error(err)
+		}
 		return err
 	}
 
+	if err := tx.Commit(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (ur *UserPgRepository) SelectByEmail(email string) (*models.User, error) {
 	dbUser := &models.User{}
 	err := ur.db.QueryRow(`
-		SELECT nickname, fullname, about, email
-		FROM profile WHERE email=$1`, email).Scan(
-		&dbUser.Nickname, &dbUser.Fullname,
-		&dbUser.About, &dbUser.Email)
+		SELECT id, nickname, fullname, about, email
+		FROM users
+		WHERE email ILIKE $1`, email).
+		Scan(&dbUser.ID, &dbUser.Nickname, &dbUser.Fullname,
+			&dbUser.About, &dbUser.Email)
 	if err != nil {
 		return nil, err
 	}
 	return dbUser, nil
 }
-

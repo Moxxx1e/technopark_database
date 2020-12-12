@@ -12,71 +12,117 @@ type UserUseCase struct {
 	rep user.UserRepository
 }
 
-func NewUserUseCase(repository user.UserRepository) *UserUseCase {
+func (uc *UserUseCase) IsExist(nickname string) (bool, *errors.Error) {
+	_, err := uc.rep.Select(nickname)
+	if err == sql.ErrNoRows {
+		return false, errors.Get(consts.CodeUserDoesNotExist)
+	} else if err != nil {
+		return false, errors.New(consts.CodeInternalServerError, err)
+	}
+	return true, nil
+}
+
+func NewUserUseCase(repository user.UserRepository) user.UserUseCase {
 	return &UserUseCase{rep: repository}
 }
 
-func (uc *UserUseCase) Create(user *models.User) *errors.Error {
-	if err := uc.IsUserConflicts(user.Nickname, user); err != nil {
-		return err
+func (uc *UserUseCase) Create(user *models.User) ([]*models.User, *errors.Error) {
+	nicknameUserConflict, customErr := uc.isNicknameExist(user.Nickname)
+	if customErr != nil {
+		return nil, customErr
+	}
+	conflictedUsers := []*models.User{}
+	if nicknameUserConflict != nil {
+		conflictedUsers = append(conflictedUsers, nicknameUserConflict)
+	}
+
+	emailUserConflict, customErr := uc.IsEmailAlreadyExist(user.Email)
+	if customErr != nil {
+		return nil, customErr
+	}
+	if emailUserConflict != nil {
+		if len(conflictedUsers) == 0 {
+			conflictedUsers = append(conflictedUsers, emailUserConflict)
+		} else if len(conflictedUsers) == 1 &&
+			conflictedUsers[0].ID != emailUserConflict.ID {
+			conflictedUsers = append(conflictedUsers, emailUserConflict)
+		}
+	}
+
+	if len(conflictedUsers) != 0 {
+		return conflictedUsers, errors.Get(consts.CodeUserEmailConflicts)
 	}
 
 	err := uc.rep.Insert(user)
 	if err != nil {
-		return errors.New(consts.CodeInternalServerError, err)
+		return nil, errors.New(consts.CodeInternalServerError, err)
 	}
-	return nil
+	return []*models.User{user}, nil
 }
 
-func (uc *UserUseCase) UpdateUserInfo(nickname string, userWithNewInfo *models.User) *errors.Error {
-	dbUser, customError := uc.IsEmailExists(userWithNewInfo.Email)
-	if customError != nil {
-		// if updated email == previous email
-		if dbUser.Nickname == nickname {
-			return nil
-		}
-		return customError
+func (uc *UserUseCase) isNicknameExist(nickname string) (*models.User, *errors.Error) {
+	dbUser, err := uc.rep.Select(nickname)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Get(consts.CodeInternalServerError)
 	}
 
-	err := uc.rep.Update(nickname, userWithNewInfo)
-	if err != nil {
-		return errors.New(consts.CodeInternalServerError, err)
+	return dbUser, nil
+}
+
+// returns user with this email
+// if user exists
+// otherwise return nil
+func (uc *UserUseCase) IsEmailAlreadyExist(email string) (*models.User, *errors.Error) {
+	dbUser, err := uc.rep.SelectByEmail(email)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Get(consts.CodeInternalServerError)
 	}
-	return nil
+
+	return dbUser, nil
+}
+
+func (uc *UserUseCase) Change(user *models.User) (*models.User, *errors.Error) {
+	dbUser, customErr := uc.GetUserInfo(user.Nickname)
+	if customErr != nil {
+		return nil, customErr
+	}
+
+	if user.Email == "" {
+		user.Email = dbUser.Email
+	} else {
+		emailUser, customErr := uc.IsEmailAlreadyExist(user.Email)
+		if customErr != nil {
+			return nil, customErr
+		}
+		if emailUser != nil {
+			return emailUser, errors.Get(consts.CodeUserEmailConflicts)
+		}
+	}
+
+	if user.Fullname == "" {
+		user.Fullname = dbUser.Fullname
+	}
+	if user.About == "" {
+		user.About = dbUser.About
+	}
+
+	err := uc.rep.Update(user)
+	if err != nil {
+		return nil, errors.New(consts.CodeInternalServerError, err)
+	}
+	return user, nil
 }
 
 func (uc *UserUseCase) GetUserInfo(nickname string) (*models.User, *errors.Error) {
-	info, err := uc.rep.Select(nickname)
+	dbUser, err := uc.rep.Select(nickname)
 	if err == sql.ErrNoRows {
-		return nil, errors.Get(consts.CodeUserDoesNotExist)
+		return dbUser, errors.Get(consts.CodeUserDoesNotExist)
 	} else if err != nil {
 		return nil, errors.New(consts.CodeInternalServerError, err)
 	}
-	return info, nil
-}
-
-func (uc *UserUseCase) IsNicknameExists(nickname string) (*models.User, *errors.Error) {
-	dbUser, err := uc.rep.Select(nickname)
-	if err != sql.ErrNoRows {
-		return dbUser, errors.Get(consts.CodeUserNicknameConflicts)
-	}
-	return nil, nil
-}
-
-func (uc *UserUseCase) IsEmailExists(email string) (*models.User, *errors.Error) {
-	dbUser, err := uc.rep.SelectByEmail(email)
-	if err != sql.ErrNoRows {
-		return dbUser, errors.Get(consts.CodeUserEmailConflicts)
-	}
-	return nil, nil
-}
-
-func (uc *UserUseCase) IsUserConflicts(nickname string, user *models.User) *errors.Error {
-	if _, err := uc.IsNicknameExists(nickname); err != nil {
-		return err
-	}
-	if _, err := uc.IsEmailExists(user.Email); err != nil {
-		return err
-	}
-	return nil
+	return dbUser, nil
 }

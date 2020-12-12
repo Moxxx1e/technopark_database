@@ -66,4 +66,46 @@ var Errors = map[ErrorCode]*Error{
 		DebugMessage: "user with this email already exists",
 		UserMessage:  "Input email already exists",
 	},
+	CodeForumAlreadyExist: {
+		Code:         CodeForumAlreadyExist,
+		HTTPCode:     http.StatusConflict,
+		DebugMessage: "slug already exist in database",
+		UserMessage:  "Forum with this slug already exists",
+	},
+	CodeForumDoesNotExist: {
+		Code:         CodeForumDoesNotExist,
+		HTTPCode:     http.StatusNotFound,
+		DebugMessage: "forum with this slug doesn't exist in database",
+		UserMessage:  "Can't find forum with this slug",
+	},
+	CodeCantDeleteDatabase: {
+		Code:         CodeCantDeleteDatabase,
+		HTTPCode:     http.StatusInternalServerError,
+		DebugMessage: "fail in truncate tables",
+		UserMessage:  "Can't delete user data",
+	},
+	CodeThreadDoesNotExist: {
+		Code:         CodeThreadDoesNotExist,
+		HTTPCode:     http.StatusNotFound,
+		DebugMessage: "fail to select from thread",
+		UserMessage:  "Can't find thread with this slug/id",
+	},
+	CodePostDoesNotExist: {
+		Code:         CodePostDoesNotExist,
+		HTTPCode:     http.StatusNotFound,
+		DebugMessage: "fail to select post by id",
+		UserMessage:  "Can't find post with this id",
+	},
+	CodeVoteDoesNotExist: {
+		Code:         CodeVoteDoesNotExist,
+		HTTPCode:     http.StatusNotFound,
+		DebugMessage: "fail to select vote",
+		UserMessage:  "Can't find existed vote",
+	},
+	CodeVoteAlreadyExist: {
+		Code:         CodeVoteAlreadyExist,
+		HTTPCode:     http.StatusConflict,
+		DebugMessage: "this vote already exists",
+		UserMessage:  "Vote already exists",
+	},
 }

@@ -3,24 +3,26 @@ package delivery
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
+	"github.com/technopark_database/internal/consts"
+	"github.com/technopark_database/internal/helpers/errors"
 	"github.com/technopark_database/internal/models"
-	"github.com/technopark_database/internal/user/usecases"
+	"github.com/technopark_database/internal/user"
 	reader "github.com/technopark_database/tools/requestReader"
 	"net/http"
 )
 
 type UserHandler struct {
-	userUseCase *usecases.UserUseCase
+	userUseCase user.UserUseCase
 }
 
-func NewUserHandler(userUseCase *usecases.UserUseCase) *UserHandler {
+func NewUserHandler(userUseCase user.UserUseCase) *UserHandler {
 	return &UserHandler{userUseCase: userUseCase}
 }
 
 func (uh *UserHandler) Configure(e *echo.Echo) {
-	e.POST("api/v1/user/:nickname/create", uh.CreateProfileHandler())
-	e.GET("api/v1/user/:nickname/profile", uh.GetProfileHandler())
-	e.POST("api/v1/user/:nickname/profile", uh.ChangeProfileHandler())
+	e.POST("/api/user/:nickname/create", uh.CreateProfileHandler())
+	e.GET("/api/user/:nickname/profile", uh.GetProfileHandler())
+	e.POST("/api/user/:nickname/profile", uh.ChangeProfileHandler())
 }
 
 type Message struct {
@@ -43,37 +45,36 @@ func (uh *UserHandler) CreateProfileHandler() echo.HandlerFunc {
 			return context.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
-		profile := &models.User{
+		newUser := &models.User{
 			Nickname: nickname,
 			Fullname: req.Fullname,
 			About:    req.About,
 			Email:    req.Email,
 		}
 
-		if err := uh.userUseCase.Create(profile); err != nil {
-			logrus.Info(err.DebugMessage)
+		users, err := uh.userUseCase.Create(newUser)
+		if err == errors.Get(consts.CodeUserEmailConflicts) ||
+			err == errors.Get(consts.CodeUserNicknameConflicts) {
+			return context.JSON(err.HTTPCode, users)
+		} else if err != nil {
 			return context.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
-		return context.JSON(http.StatusCreated, profile)
+		return context.JSON(http.StatusCreated, newUser)
 	}
 }
 
 func (uh *UserHandler) GetProfileHandler() echo.HandlerFunc {
-	type GetProfileResponse struct {
-		Message string `json:"message"`
-	}
-
 	return func(context echo.Context) error {
 		nickname := context.Param("nickname")
 
-		dbProfile, err := uh.userUseCase.GetUserInfo(nickname)
+		dbUser, err := uh.userUseCase.GetUserInfo(nickname)
 		if err != nil {
 			logrus.Info(err.DebugMessage)
 			return context.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
-		return context.JSON(http.StatusCreated, dbProfile)
+		return context.JSON(http.StatusOK, dbUser)
 	}
 }
 
@@ -93,18 +94,19 @@ func (uh *UserHandler) ChangeProfileHandler() echo.HandlerFunc {
 			return context.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
-		profile := &models.User{
+		updateUser := &models.User{
 			Nickname: nickname,
 			Fullname: req.Fullname,
 			About:    req.About,
 			Email:    req.Email,
 		}
 
-		if err := uh.userUseCase.UpdateUserInfo(nickname, profile); err != nil {
-			logrus.Info(err.DebugMessage)
-			return context.JSON(err.HTTPCode, Message{Message: err.UserMessage})
+		user, customErr := uh.userUseCase.Change(updateUser)
+		if customErr != nil {
+			logrus.Info(customErr.DebugMessage)
+			return context.JSON(customErr.HTTPCode, Message{Message: customErr.UserMessage})
 		}
 
-		return context.JSON(http.StatusOK, profile)
+		return context.JSON(http.StatusOK, user)
 	}
 }

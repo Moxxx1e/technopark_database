@@ -8,4 +8,11 @@ const (
 	CodeUserDoesNotExist
 	CodeUserNicknameConflicts
 	CodeUserEmailConflicts
+	CodeForumAlreadyExist
+	CodeForumDoesNotExist
+	CodeCantDeleteDatabase
+	CodeThreadDoesNotExist
+	CodePostDoesNotExist
+	CodeVoteAlreadyExist
+	CodeVoteDoesNotExist
 )

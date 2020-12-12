@@ -6,8 +6,8 @@ import (
 )
 
 type ForumUseCase interface {
-	Create(forum *models.Forum) *errors.Error
+	Create(forum *models.Forum) (*models.Forum, *errors.Error)
 	GetDetails(slug string) (*models.Forum, *errors.Error)
-	GetUsers(slug string) ([]*models.User, *errors.Error)
-	GetThreads(slug string) ([]*models.Thread, *errors.Error)
+	GetUsers(slug string, pagination *models.Pagination) ([]*models.User, *errors.Error)
+	GetThreads(slug string, pagination *models.Pagination) ([]*models.Thread, *errors.Error)
 }
