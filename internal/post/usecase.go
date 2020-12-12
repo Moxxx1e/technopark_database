@@ -6,6 +6,6 @@ import (
 )
 
 type PostUseCase interface {
-	CreateMany(posts []*models.Post) *errors.Error
+	CreateMany(slugOrID string, posts []*models.Post) ([]*models.Post, *errors.Error)
 	ChangeByID(id uint64, message string) (*models.Post, *errors.Error)
 }

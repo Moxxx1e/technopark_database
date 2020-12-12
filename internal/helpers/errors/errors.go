@@ -108,4 +108,10 @@ var Errors = map[ErrorCode]*Error{
 		DebugMessage: "this vote already exists",
 		UserMessage:  "Vote already exists",
 	},
+	CodeParentPostDoesNotExistInThread: {
+		Code:         CodeParentPostDoesNotExistInThread,
+		HTTPCode:     http.StatusConflict,
+		DebugMessage: "Can't find parent post in thread",
+		UserMessage:  "Parent post doesn't exist in thread",
+	},
 }

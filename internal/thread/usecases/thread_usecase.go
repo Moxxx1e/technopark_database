@@ -155,3 +155,13 @@ func (th *ThreadUseCase) GetBySlug(slug string) (*models.Thread, *errors.Error) 
 	}
 	return thread, nil
 }
+
+func (th *ThreadUseCase) GetPostsByID(id uint64) ([]*models.Post, *errors.Error) {
+	posts, err := th.rep.SelectPostsByID(id)
+	if err == sql.ErrNoRows {
+		return []*models.Post{}, nil
+	} else if err != nil {
+		return nil, errors.New(consts.CodeInternalServerError, err)
+	}
+	return posts, nil
+}

@@ -72,7 +72,7 @@ func main() {
 	serviceHandler := serviceDelivery.NewServiceHandler(serviceUseCase)
 
 	postRepo := postRepository.NewPostPgRepository(db)
-	postUseCase := postUseCase.NewPostUseCase(postRepo)
+	postUseCase := postUseCase.NewPostUseCase(threadUseCase, postRepo)
 	postHandler := postDelivery.NewPostHandler(postUseCase)
 
 	userHandler.Configure(e)

@@ -49,7 +49,6 @@ func (th *ThreadHandler) CreateThreadHandler() echo.HandlerFunc {
 
 		forumSlug := cntx.Param("forum_slug")
 
-
 		thread := &models.Thread{
 			Title:   req.Title,
 			Author:  req.Author,

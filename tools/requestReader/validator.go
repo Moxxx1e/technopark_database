@@ -21,7 +21,7 @@ func NewRequestReader(cntx echo.Context) *RequestReader {
 
 func (rr *RequestReader) Read(request interface{}) *errors.Error {
 	if err := rr.cntx.Bind(request); err != nil {
-		return errors.Get(CodeInternalServerError)
+		return errors.New(CodeInternalServerError, err)
 	}
 
 	if err := rr.validator.Struct(request); err != nil {

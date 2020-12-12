@@ -15,4 +15,5 @@ const (
 	CodePostDoesNotExist
 	CodeVoteAlreadyExist
 	CodeVoteDoesNotExist
+	CodeParentPostDoesNotExistInThread
 )

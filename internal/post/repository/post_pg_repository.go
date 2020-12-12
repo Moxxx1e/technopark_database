@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"github.com/sirupsen/logrus"
 	"github.com/technopark_database/internal/models"
 	"github.com/technopark_database/internal/post"
 )
@@ -21,7 +22,8 @@ func (rep *PostPgRepository) InsertMany(posts []*models.Post) error {
 		return err
 	}
 
-	stmt, err := tx.Prepare(`
+	logrus.Info(posts)
+	stmt, err := rep.db.Prepare(`
 		INSERT INTO posts(parent, author, message, 
 		isedited, forum, thread, created)
 		VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`)
@@ -30,17 +32,23 @@ func (rep *PostPgRepository) InsertMany(posts []*models.Post) error {
 	}
 
 	for _, post := range posts {
-		_, err := stmt.Exec(post.Parent, post.Author, post.Message,
-			post.IsEdited, post.Forum, post.Thread, post.Created)
+		logrus.Info(post)
+		err := stmt.QueryRow(post.Parent, post.Author, post.Message,
+			post.IsEdited, post.Forum, post.Thread, post.Created).
+			Scan(&post.ID)
 		if err != nil {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				logrus.Info(rollbackErr)
+			}
 			return err
 		}
 	}
 
-	if _, err = stmt.Exec(); err != nil {
+	if err = stmt.Close(); err != nil {
 		return err
 	}
-	if err = stmt.Close(); err != nil {
+
+	if err := tx.Commit(); tx != nil {
 		return err
 	}
 
@@ -56,7 +64,7 @@ func (rep *PostPgRepository) Update(post *models.Post) error {
 	_, err = tx.Exec(`
 		UPDATE posts
 		SET message=$1, isedited=true
-		WHERE id=$2`, post.Message, post.Id)
+		WHERE id=$2`, post.Message, post.ID)
 	if err != nil {
 		return err
 	}
@@ -72,7 +80,7 @@ func (rep *PostPgRepository) SelectByID(id uint64) (*models.Post, error) {
 	err := rep.db.QueryRow(`
 		SELECT id, parent, author, message, isedited, forum, thread, created
 		FROM posts
-		WHERE id=$1`, id).Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
+		WHERE id=$1`, id).Scan(&post.ID, &post.Parent, &post.Author, &post.Message,
 		&post.IsEdited, &post.Forum, &post.Thread, &post.Created)
 	if err != nil {
 		return nil, err

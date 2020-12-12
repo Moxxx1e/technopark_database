@@ -105,7 +105,7 @@ func (rep *ThreadPgRepository) SelectBySlug(slug string) (*models.Thread, error)
 	err := rep.db.QueryRow(`
 		SELECT id, title, author, forum, message, votes, slug, created
 		FROM threads
-		WHERE slug=$1`, slug).Scan(&thread.ID, &thread.Title, &thread.Author,
+		WHERE slug ILIKE $1`, slug).Scan(&thread.ID, &thread.Title, &thread.Author,
 		&thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
 	if err != nil {
 		return nil, err
@@ -118,7 +118,7 @@ func (rep *ThreadPgRepository) SelectPostsByID(id uint64) ([]*models.Post, error
 		SELECT p.id, p.parent, p.author, p.message,
 		       p.isedited, p.forum, p.thread, p.created
 		FROM threads t
-		LEFT OUTER JOIN posts p on t.id = p.thread
+		JOIN posts p on t.id = p.thread
 		WHERE t.id=$1`, id)
 	if err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func (rep *ThreadPgRepository) SelectPostsByID(id uint64) ([]*models.Post, error
 	var posts []*models.Post
 	for rows.Next() {
 		post := &models.Post{}
-		err := rows.Scan(&post.Id, &post.Parent,
+		err := rows.Scan(&post.ID, &post.Parent,
 			&post.Author, &post.Message, &post.IsEdited,
 			&post.Forum, &post.Thread, &post.Created)
 		if err != nil {
@@ -155,7 +155,7 @@ func (rep *ThreadPgRepository) SelectPostsBySlug(slug string) ([]*models.Post, e
 	var posts []*models.Post
 	for rows.Next() {
 		post := &models.Post{}
-		err := rows.Scan(&post.Id, &post.Parent,
+		err := rows.Scan(&post.ID, &post.Parent,
 			&post.Author, &post.Message, &post.IsEdited,
 			&post.Forum, &post.Thread, &post.Created)
 		if err != nil {

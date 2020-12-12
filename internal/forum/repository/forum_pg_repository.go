@@ -85,7 +85,6 @@ func (rep *ForumPgRepository) SelectThreads(forumSlug string,
 		}
 		i++
 		values = append(values, since)
-
 	}
 
 	query = strings.Join([]string{query, "ORDER BY created"}, " ")
@@ -96,9 +95,6 @@ func (rep *ForumPgRepository) SelectThreads(forumSlug string,
 	}
 	limitStr := fmt.Sprintf("LIMIT $%d", i)
 	query = strings.Join([]string{query, limitStr}, " ")
-	logrus.Info(query)
-	logrus.Info(values)
-	logrus.Info(desc)
 	values = append(values, limit)
 
 	rows, err := rep.db.Query(query, values...)

@@ -116,7 +116,6 @@ func (fh *ForumHandler) GetThreads() echo.HandlerFunc {
 
 		slug := cntx.Param("slug")
 
-		logrus.Info("handler since: ", req.Pagination.Since)
 		threads, err := fh.forumUseCase.GetThreads(slug, &req.Pagination)
 		if err != nil {
 			logrus.Error(err.DebugMessage)

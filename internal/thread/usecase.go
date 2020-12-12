@@ -13,4 +13,5 @@ type ThreadUsecase interface {
 	ChangeBySlug(slug string, title, message string) (*models.Thread, *errors.Error)
 	GetByID(id uint64) (*models.Thread, *errors.Error)
 	GetBySlug(slug string) (*models.Thread, *errors.Error)
+	GetPostsByID(id uint64) ([]*models.Post, *errors.Error)
 }
