@@ -6,7 +6,7 @@ import (
 )
 
 type ThreadUsecase interface {
-	Create(thread *models.Thread) *errors.Error
+	Create(thread *models.Thread) (*models.Thread, *errors.Error)
 	CreateVoteByID(id uint64, nickname string, vote int) (*models.Thread, *errors.Error)
 	CreateVoteBySlug(slug string, nickname string, vote int) (*models.Thread, *errors.Error)
 	ChangeByID(id uint64, title, message string) (*models.Thread, *errors.Error)

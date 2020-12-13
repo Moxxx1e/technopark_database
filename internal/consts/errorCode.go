@@ -12,6 +12,7 @@ const (
 	CodeForumDoesNotExist
 	CodeCantDeleteDatabase
 	CodeThreadDoesNotExist
+	CodeThreadAlreadyExist
 	CodePostDoesNotExist
 	CodeVoteAlreadyExist
 	CodeVoteDoesNotExist

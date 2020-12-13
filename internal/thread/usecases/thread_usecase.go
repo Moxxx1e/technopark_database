@@ -26,27 +26,34 @@ func NewThreadUseCase(rep thread.ThreadRepository, userUseCase user.UserUseCase,
 		voteUseCase:  voteUseCase}
 }
 
-func (th *ThreadUseCase) Create(thread *models.Thread) *errors.Error {
-	_, customErr := th.forumUseCase.GetDetails(thread.Forum)
+func (th *ThreadUseCase) Create(thread *models.Thread) (*models.Thread, *errors.Error) {
+	existedForum, customErr := th.forumUseCase.GetDetails(thread.Forum)
 	if customErr != nil {
-		return customErr
+		return nil, customErr
 	}
+	thread.Forum = existedForum.Slug
 
-	_, customErr = th.userUseCase.GetUserInfo(thread.Author)
+	author, customErr := th.userUseCase.GetUserInfo(thread.Author)
 	if customErr != nil {
-		return customErr
+		return nil, customErr
 	}
-	_, customErr = th.forumUseCase.GetDetails(thread.Forum)
-	if customErr != nil {
-		return customErr
+	thread.Author = author.Nickname
+
+	if thread.Slug != "" {
+		existedThread, customErr := th.GetBySlug(thread.Slug)
+		if customErr != nil && customErr != errors.Get(consts.CodeThreadDoesNotExist) {
+			return nil, customErr
+		} else if existedThread != nil {
+			return existedThread, errors.Get(consts.CodeThreadAlreadyExist)
+		}
 	}
 
 	err := th.rep.Insert(thread)
 	if err != nil {
-		return errors.New(consts.CodeInternalServerError, err)
+		return nil, errors.New(consts.CodeInternalServerError, err)
 	}
 
-	return nil
+	return thread, nil
 }
 
 func (th *ThreadUseCase) CreateVote(thread *models.Thread,
@@ -54,9 +61,8 @@ func (th *ThreadUseCase) CreateVote(thread *models.Thread,
 	voteModel := &models.Vote{
 		ThreadID: thread.ID,
 		UserID:   user.ID,
+		Likes: vote == 1,
 	}
-	voteModel.Likes = vote == 1
-	thread.Votes += vote
 	return voteModel
 }
 
@@ -74,7 +80,12 @@ func (th *ThreadUseCase) CreateVoteByID(id uint64, nickname string, vote int) (*
 	voteModel := th.CreateVote(thread, user, vote)
 	// don't need to update votes field in thread
 	// because there is a trigger in db
-	customErr = th.voteUseCase.Create(voteModel)
+	_, customErr = th.voteUseCase.Create(voteModel)
+	if customErr != nil {
+		return nil, customErr
+	}
+	// TODO: неоптимально
+	thread, customErr = th.GetByID(id)
 	if customErr != nil {
 		return nil, customErr
 	}
@@ -96,10 +107,14 @@ func (th *ThreadUseCase) CreateVoteBySlug(slug string, nickname string, vote int
 	voteModel := th.CreateVote(thread, user, vote)
 	// don't need to update votes field in thread
 	// because there is a trigger in db
-	customErr = th.voteUseCase.Create(voteModel)
+	_, customErr = th.voteUseCase.Create(voteModel)
+
+	// TODO: неоптимально
+	thread, customErr = th.GetBySlug(slug)
 	if customErr != nil {
 		return nil, customErr
 	}
+
 
 	return thread, nil
 }

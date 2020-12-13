@@ -3,6 +3,7 @@ package delivery
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
+	"github.com/technopark_database/internal/consts"
 	"github.com/technopark_database/internal/helpers/errors"
 	"github.com/technopark_database/internal/models"
 	"github.com/technopark_database/internal/thread"
@@ -25,7 +26,6 @@ func NewThreadHandler(threadUseCase thread.ThreadUsecase) *ThreadHandler {
 }
 
 func (th *ThreadHandler) Configure(e *echo.Echo) {
-	// Проверено
 	e.POST("/api/forum/:forum_slug/create", th.CreateThreadHandler())
 	e.GET("/api/thread/:slug_or_id/details", th.GetDetailsHandler())
 	e.POST("/api/thread/:slug_or_id/vote", th.VoteHandler())
@@ -57,13 +57,17 @@ func (th *ThreadHandler) CreateThreadHandler() echo.HandlerFunc {
 			Slug:    req.Slug,
 			Created: req.Created,
 		}
-		err := th.threadUseCase.Create(thread)
+		createdThread, err := th.threadUseCase.Create(thread)
+		if err == errors.Get(consts.CodeThreadAlreadyExist) {
+			logrus.Error(err.DebugMessage)
+			return cntx.JSON(err.HTTPCode, createdThread)
+		}
 		if err != nil {
 			logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
-		return cntx.JSON(http.StatusCreated, thread)
+		return cntx.JSON(http.StatusCreated, createdThread)
 	}
 }
 
@@ -96,7 +100,7 @@ func (th *ThreadHandler) GetDetailsHandler() echo.HandlerFunc {
 func (th *ThreadHandler) VoteHandler() echo.HandlerFunc {
 	type Request struct {
 		Nickname string `json:"nickname"`
-		Vote     int    `json:"vote"`
+		Vote     int    `json:"voice"`
 	}
 
 	return func(cntx echo.Context) error {

@@ -46,9 +46,10 @@ func (rep *VotePgRepository) Update(vote *models.Vote) error {
 	}
 
 	_, err = tx.Exec(`
-		UPDATE votes(thread_id, user_id, likes)
-		SET likes=$1`,
-		vote.Likes)
+		UPDATE votes
+		SET likes=$1
+		WHERE user_id=$2 AND thread_id=$3`,
+		vote.Likes, vote.UserID, vote.ThreadID)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			logrus.Info(rollbackErr)

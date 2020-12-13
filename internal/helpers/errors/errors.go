@@ -114,4 +114,10 @@ var Errors = map[ErrorCode]*Error{
 		DebugMessage: "Can't find parent post in thread",
 		UserMessage:  "Parent post doesn't exist in thread",
 	},
+	CodeThreadAlreadyExist: {
+		Code:         CodeThreadAlreadyExist,
+		HTTPCode:     http.StatusConflict,
+		DebugMessage: "thread with this slug already exist",
+		UserMessage:  "thread already exist",
+	},
 }
