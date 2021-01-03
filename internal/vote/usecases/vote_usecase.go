@@ -12,26 +12,27 @@ type VoteUseCase struct {
 	rep vote.VoteRepository
 }
 
-func (uc *VoteUseCase) Create(vote *models.Vote) (bool, *errors.Error) {
+func (uc *VoteUseCase) Create(vote *models.Vote) (int, *errors.Error) {
 	dbVote, customErr := uc.Get(vote.ThreadID, vote.UserID)
-	if customErr == errors.Get(consts.CodeVoteDoesNotExist) {
-		err := uc.rep.Insert(vote)
-		if err != nil {
-			return false, errors.New(consts.CodeInternalServerError, err)
-		}
-	} else if customErr == nil {
+	if customErr == nil {
 		if dbVote.Likes == vote.Likes {
-			return false, nil
+			return 0, nil
 		}
 
 		err := uc.rep.Update(vote)
 		if err != nil {
-			return false, errors.New(consts.CodeInternalServerError, err)
+			return 0, errors.New(consts.CodeInternalServerError, err)
 		}
+		return 2, nil
+	} else if customErr.Code == consts.CodeVoteDoesNotExist {
+		err := uc.rep.Insert(vote)
+		if err != nil {
+			return 0, errors.New(consts.CodeInternalServerError, err)
+		}
+		return 1, nil
 	} else {
-		return false, customErr
+		return 0, customErr
 	}
-	return true, nil
 }
 
 func (uc *VoteUseCase) Get(threadID uint64, userID uint64) (*models.Vote, *errors.Error) {

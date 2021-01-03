@@ -39,6 +39,19 @@ func (uc *ForumUseCase) Create(forum *models.Forum) (*models.Forum, *errors.Erro
 	return forum, nil
 }
 
+func (uc *ForumUseCase) AddForumUser(nickname string, slug string) *errors.Error {
+	_, _, err := uc.rep.SelectUserForum(nickname, slug)
+	if err == sql.ErrNoRows {
+		err := uc.rep.InsertUserForum(nickname, slug)
+		if err != nil {
+			return errors.New(consts.CodeInternalServerError, err)
+		}
+	} else if err != nil {
+		return errors.New(consts.CodeInternalServerError, err)
+	}
+	return nil
+}
+
 func (uc *ForumUseCase) GetDetails(slug string) (*models.Forum, *errors.Error) {
 	forum, err := uc.rep.Select(slug)
 	if err == sql.ErrNoRows {
@@ -50,12 +63,35 @@ func (uc *ForumUseCase) GetDetails(slug string) (*models.Forum, *errors.Error) {
 	return forum, nil
 }
 
-func (uc *ForumUseCase) GetUsers(slug string, pagination *models.Pagination) ([]*models.User, *errors.Error) {
-	// TODO: после поста
-	panic("implement me!")
+func (uc *ForumUseCase) GetFullDetails(slug string) (*models.Forum, *errors.Error) {
+	forum, err := uc.rep.SelectFull(slug)
+	if err == sql.ErrNoRows {
+		return nil, errors.Get(consts.CodeForumDoesNotExist)
+	} else if err != nil {
+		return nil, errors.New(consts.CodeInternalServerError, err)
+	}
+
+	return forum, nil
 }
 
-func (uc *ForumUseCase) GetThreads(slug string, pagination *models.Pagination) ([]*models.Thread, *errors.Error) {
+func (uc *ForumUseCase) GetUsers(slug string, since string, pagination *models.Pagination) ([]*models.User, *errors.Error) {
+	_, customErr := uc.GetDetails(slug)
+	if customErr != nil {
+		return nil, customErr
+	}
+
+	users, err := uc.rep.SelectUsers(slug, pagination.Limit, since, pagination.Desc)
+	if err == sql.ErrNoRows {
+		return []*models.User{}, nil
+	}
+	if err != nil {
+		return nil, errors.New(consts.CodeInternalServerError, err)
+	}
+
+	return users, nil
+}
+
+func (uc *ForumUseCase) GetThreads(slug string, since string, pagination *models.Pagination) ([]*models.Thread, *errors.Error) {
 	if pagination.Limit == 0 {
 		pagination.Limit = 100
 	}
@@ -64,7 +100,7 @@ func (uc *ForumUseCase) GetThreads(slug string, pagination *models.Pagination) (
 		return nil, err
 	}
 
-	threads, err := uc.rep.SelectThreads(slug, pagination.Limit, pagination.Since, pagination.Desc)
+	threads, err := uc.rep.SelectThreads(slug, pagination.Limit, since, pagination.Desc)
 	if err != nil {
 		return nil, errors.New(consts.CodeInternalServerError, err)
 	}

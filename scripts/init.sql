@@ -1,24 +1,23 @@
-DROP TABLE IF EXISTS users, forums, posts, threads CASCADE;
+CREATE EXTENSION IF NOT EXISTS citext;
+DROP TABLE IF EXISTS users, forums, posts, threads, votes, user_forum CASCADE;
 
 CREATE TABLE IF NOT EXISTS users
 (
     id       serial PRIMARY KEY,
-    nickname text UNIQUE,
-    -- Данное поле допускает только латиницу, цифры и знак подчеркивания.
-    -- Сравнение имени регистронезависимо
-    fullname text        NOT NULL,
-    about    text,
-    email    text UNIQUE NOT NULL,
+    nickname citext COLLATE "POSIX" UNIQUE NOT NULL,
+    fullname text          NOT NULL,
+    about    text          NOT NULL,
+    email    citext UNIQUE NOT NULL
 
-    CONSTRAINT right_nickname CHECK ( nickname ~* '[0-9a-z_]')
+    -- CONSTRAINT right_nickname CHECK ( nickname ~* '[0-9a-z_]')
 );
 
 CREATE TABLE IF NOT EXISTS forums
 (
     id      serial PRIMARY KEY,
-    title   text        NOT NULL,
-    profile text        NOT NULL,
-    slug    text UNIQUE NOT NULL,
+    title   text          NOT NULL,
+    profile citext        NOT NULL,
+    slug    citext UNIQUE NOT NULL,
     -- posts
     -- threads
 
@@ -29,12 +28,12 @@ CREATE TABLE IF NOT EXISTS forums
 CREATE TABLE IF NOT EXISTS threads
 (
     id      SERIAL PRIMARY KEY,
-    title   text NOT NULL,
-    author  text NOT NULL,
-    forum   text,
-    message text NOT NULL,
+    title   text   NOT NULL,
+    author  citext NOT NULL,
+    forum   citext,
+    message text   NOT NULL,
     votes   int,
-    slug    text,
+    slug    citext,
     created timestamptz,
 
     FOREIGN KEY (author) REFERENCES users (nickname),
@@ -56,18 +55,28 @@ CREATE TABLE IF NOT EXISTS votes
 CREATE TABLE IF NOT EXISTS posts
 (
     id       serial PRIMARY KEY,
-    parent   int           DEFAULT 0,
-    author   text NOT NULL,
-    message  text NOT NULL,
-    isEdited bool NOT NULL DEFAULT false,
-    forum    text,
+    parent   int    NOT NULL,
+    path     int[]  NOT NULL,
+    author   citext NOT NULL,
+    message  text   NOT NULL,
+    isEdited bool   NOT NULL DEFAULT false,
+    forum    citext,
     thread   int,
     created  timestamptz,
 
-    UNIQUE (id, parent, author, thread),
     FOREIGN KEY (author) REFERENCES users (nickname),
     FOREIGN KEY (forum) REFERENCES forums (slug),
     FOREIGN KEY (thread) REFERENCES threads (id)
+);
+
+CREATE TABLE IF NOT EXISTS user_forum
+(
+    nickname citext,
+    slug     citext,
+
+    PRIMARY KEY (nickname, slug),
+    FOREIGN KEY (nickname) REFERENCES users (nickname),
+    FOREIGN KEY (slug) REFERENCES forums (slug)
 );
 
 
@@ -120,7 +129,43 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER votes_ins_upd AFTER INSERT OR UPDATE ON votes
-    FOR EACH ROW EXECUTE PROCEDURE votes_ins_upd();
-CREATE TRIGGER vots_del BEFORE DELETE ON votes
-    FOR EACH ROW EXECUTE PROCEDURE votes_del();
+CREATE TRIGGER votes_ins_upd
+    AFTER INSERT OR UPDATE
+    ON votes
+    FOR EACH ROW
+EXECUTE PROCEDURE votes_ins_upd();
+CREATE TRIGGER vots_del
+    BEFORE DELETE
+    ON votes
+    FOR EACH ROW
+EXECUTE PROCEDURE votes_del();
+
+-- Insert id into path on insert
+CREATE OR REPLACE FUNCTION upd_path() RETURNS trigger AS
+$upd_path$
+DECLARE
+    parent_thread integer;
+    parent_path   integer[];
+BEGIN
+    IF (NEW.parent = 0) THEN
+        NEW.path := array_append(NEW.path, NEW.id);
+        RETURN NEW;
+    END IF;
+
+    SELECT thread INTO parent_thread FROM posts WHERE id = NEW.parent;
+    IF NOT FOUND OR NEW.thread <> parent_thread THEN
+        RAISE EXCEPTION 'Can not find parent post into thread';
+    END IF;
+
+    SELECT path INTO parent_path FROM posts WHERE id = NEW.parent;
+    NEW.path = array_append(parent_path, NEW.id);
+    RETURN NEW;
+END;
+$upd_path$
+    LANGUAGE plpgsql;
+
+CREATE TRIGGER upd_path
+    BEFORE INSERT
+    ON posts
+    FOR EACH ROW
+EXECUTE PROCEDURE upd_path();

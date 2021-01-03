@@ -42,12 +42,49 @@ func (rep *ForumPgRepository) Insert(forum *models.Forum) error {
 	return nil
 }
 
+func (rep *ForumPgRepository) InsertUserForum(nickname string, slug string) error {
+	tx, err := rep.db.BeginTx(context.Background(), &sql.TxOptions{})
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		INSERT INTO user_forum(nickname, slug) 
+		VALUES($1, $2)`, nickname, slug)
+	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			logrus.Error(err)
+		}
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (rep *ForumPgRepository) SelectUserForum(nickname string, slug string) (string, string, error) {
+	var dbNickname, dbSlug string
+	err := rep.db.QueryRow(`
+		SELECT nickname, slug
+		FROM user_forum
+		WHERE slug=$1 AND nickname=$2`,
+		slug, nickname).Scan(
+		&dbNickname, &dbSlug)
+	if err != nil {
+		return "", "", err
+	}
+	return dbNickname, dbSlug, nil
+}
+
 func (rep *ForumPgRepository) Select(slug string) (*models.Forum, error) {
 	forum := &models.Forum{}
 	err := rep.db.QueryRow(`
 		SELECT title, profile, slug
 		FROM forums
-		WHERE slug ILIKE $1`, slug).Scan(
+		WHERE slug = $1`, slug).Scan(
 		&forum.Title, &forum.User, &forum.Slug)
 	if err != nil {
 		return nil, err
@@ -55,9 +92,35 @@ func (rep *ForumPgRepository) Select(slug string) (*models.Forum, error) {
 	return forum, nil
 }
 
-//TODO: заполнить после поста и треда
-func (rep *ForumPgRepository) SelectUsers(slug string) ([]*models.User, error) {
-	return nil, nil
+func (rep *ForumPgRepository) SelectFull(slug string) (*models.Forum, error) {
+	forum, err := rep.Select(slug)
+	if err != nil {
+		return nil, err
+	}
+	threads, posts, err := rep.SelectCounts(slug)
+	if err != nil {
+		return nil, err
+	}
+	forum.Threads, forum.Posts = threads, posts
+	return forum, nil
+}
+
+func (rep *ForumPgRepository) SelectCounts(slug string) (int, int, error) {
+	var threadsCount, postsCount int
+	err := rep.db.QueryRow(`
+		SELECT count(t.id)
+		FROM forums f
+		JOIN threads t on f.slug = t.forum
+		WHERE f.slug = $1`, slug).Scan(&threadsCount)
+	err = rep.db.QueryRow(`
+		SELECT count(p.id)
+		FROM forums f
+		JOIN posts p ON f.slug = p.forum
+		WHERE f.slug=$1`, slug).Scan(&postsCount)
+	if err != nil {
+		return 0, 0, err
+	}
+	return threadsCount, postsCount, nil
 }
 
 func (rep *ForumPgRepository) SelectThreads(forumSlug string,
@@ -66,7 +129,7 @@ func (rep *ForumPgRepository) SelectThreads(forumSlug string,
 		SELECT t.id, t.title, t.author, t.forum, t.message, t.votes, t.slug, t.created
 		FROM forums f
 		JOIN threads t on t.forum=f.slug
-		WHERE forum ILIKE $1`
+		WHERE forum = $1`
 
 	var values []interface{}
 	values = append(values, forumSlug)
@@ -119,4 +182,60 @@ func (rep *ForumPgRepository) SelectThreads(forumSlug string,
 	}
 
 	return threads, nil
+}
+
+func (rep *ForumPgRepository) SelectUsers(slug string, limit int,
+	since string, desc bool) ([]*models.User, error) {
+	query := `
+		SELECT u.id, u.nickname, u.fullname, u.about,
+		       u.email
+		FROM user_forum
+		JOIN users u on u.nickname = user_forum.nickname
+		WHERE slug=$1`
+	var values []interface{}
+	values = append(values, slug)
+
+	i := 2
+	if since != "" {
+		if desc {
+			query = strings.Join([]string{query, "AND u.nickname < $2"}, " ")
+		} else {
+			query = strings.Join([]string{query, "AND u.nickname > $2"}, " ")
+		}
+		values = append(values, since)
+		i++
+	}
+
+	if desc {
+		query = strings.Join([]string{query, "ORDER BY u.nickname DESC"}, " ")
+	} else {
+		query = strings.Join([]string{query, "ORDER BY u.nickname"}, " ")
+	}
+	if limit != 0 {
+		query = strings.Join([]string{query,
+			fmt.Sprintf("LIMIT $%d", i)}, " ")
+		values = append(values, limit)
+	}
+
+	rows, err := rep.db.Query(query, values...)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := []*models.User{}
+	for rows.Next() {
+		user := &models.User{}
+		err := rows.Scan(&user.ID, &user.Nickname,
+			&user.Fullname, &user.About, &user.Email)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return users, nil
 }

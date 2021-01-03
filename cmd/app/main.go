@@ -33,7 +33,7 @@ import (
 
 func GetConnectionString() string {
 	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		"localhost", 5432, "postgres", "postgres", "techno_db")
+		"localhost", 5432, "docker", "docker", "docker")
 }
 
 func main() {
@@ -72,7 +72,7 @@ func main() {
 	serviceHandler := serviceDelivery.NewServiceHandler(serviceUseCase)
 
 	postRepo := postRepository.NewPostPgRepository(db)
-	postUseCase := postUseCase.NewPostUseCase(threadUseCase, postRepo)
+	postUseCase := postUseCase.NewPostUseCase(threadUseCase, postRepo, forumUseCase, userUseCase)
 	postHandler := postDelivery.NewPostHandler(postUseCase)
 
 	userHandler.Configure(e)

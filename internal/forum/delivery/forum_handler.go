@@ -23,8 +23,7 @@ func (fh *ForumHandler) Configure(e *echo.Echo) {
 	e.POST("/api/forum/create", fh.CreateHandler())
 	e.GET("/api/forum/:slug/details", fh.GetInfo())
 	e.GET("/api/forum/:slug/threads", fh.GetThreads())
-	// TODO: проверить
-	//e.GET("/api/forum/:slug/users", fh.GetUsers())
+	e.GET("/api/forum/:slug/users", fh.GetUsers())
 }
 
 type Message struct {
@@ -68,7 +67,7 @@ func (fh *ForumHandler) GetInfo() echo.HandlerFunc {
 	return func(cntx echo.Context) error {
 		slug := cntx.Param("slug")
 
-		forum, err := fh.forumUseCase.GetDetails(slug)
+		forum, err := fh.forumUseCase.GetFullDetails(slug)
 		if err != nil {
 			logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{err.UserMessage})
@@ -80,6 +79,7 @@ func (fh *ForumHandler) GetInfo() echo.HandlerFunc {
 
 func (fh *ForumHandler) GetUsers() echo.HandlerFunc {
 	type Request struct {
+		Since string `query:"since"`
 		models.Pagination
 	}
 
@@ -92,7 +92,7 @@ func (fh *ForumHandler) GetUsers() echo.HandlerFunc {
 
 		slug := cntx.Param("slug")
 
-		users, err := fh.forumUseCase.GetUsers(slug, &req.Pagination)
+		users, err := fh.forumUseCase.GetUsers(slug, req.Since, &req.Pagination)
 		if err != nil {
 			logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{err.UserMessage})
@@ -104,6 +104,7 @@ func (fh *ForumHandler) GetUsers() echo.HandlerFunc {
 
 func (fh *ForumHandler) GetThreads() echo.HandlerFunc {
 	type Request struct {
+		Since string `query:"since"`
 		models.Pagination
 	}
 
@@ -116,7 +117,7 @@ func (fh *ForumHandler) GetThreads() echo.HandlerFunc {
 
 		slug := cntx.Param("slug")
 
-		threads, err := fh.forumUseCase.GetThreads(slug, &req.Pagination)
+		threads, err := fh.forumUseCase.GetThreads(slug, req.Since, &req.Pagination)
 		if err != nil {
 			logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{err.UserMessage})

@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/technopark_database/internal/models"
 	"github.com/technopark_database/internal/user"
+	"strings"
 )
 
 type UserPgRepository struct {
@@ -45,7 +46,7 @@ func (ur *UserPgRepository) Select(nickname string) (*models.User, error) {
 	err := ur.db.QueryRow(`
 		SELECT id, nickname, fullname, about, email
 		FROM users
-		WHERE nickname ILIKE $1`, nickname).Scan(
+		WHERE lower(nickname)=$1`, strings.ToLower(nickname)).Scan(
 		&dbUser.ID, &dbUser.Nickname, &dbUser.Fullname,
 		&dbUser.About, &dbUser.Email)
 	if err != nil {
@@ -83,7 +84,7 @@ func (ur *UserPgRepository) SelectByEmail(email string) (*models.User, error) {
 	err := ur.db.QueryRow(`
 		SELECT id, nickname, fullname, about, email
 		FROM users
-		WHERE email ILIKE $1`, email).
+		WHERE lower(email) = $1`, strings.ToLower(email)).
 		Scan(&dbUser.ID, &dbUser.Nickname, &dbUser.Fullname,
 			&dbUser.About, &dbUser.Email)
 	if err != nil {

@@ -53,15 +53,20 @@ func (th *ThreadUseCase) Create(thread *models.Thread) (*models.Thread, *errors.
 		return nil, errors.New(consts.CodeInternalServerError, err)
 	}
 
+	customErr = th.forumUseCase.AddForumUser(author.Nickname, existedForum.Slug)
+	if customErr != nil {
+		return nil, customErr
+	}
+
 	return thread, nil
 }
 
-func (th *ThreadUseCase) CreateVote(thread *models.Thread,
+func (th *ThreadUseCase) CreateVoteModel(thread *models.Thread,
 	user *models.User, vote int) *models.Vote {
 	voteModel := &models.Vote{
 		ThreadID: thread.ID,
 		UserID:   user.ID,
-		Likes: vote == 1,
+		Likes:    vote == 1,
 	}
 	return voteModel
 }
@@ -77,17 +82,19 @@ func (th *ThreadUseCase) CreateVoteByID(id uint64, nickname string, vote int) (*
 		return nil, customErr
 	}
 
-	voteModel := th.CreateVote(thread, user, vote)
+	voteModel := th.CreateVoteModel(thread, user, vote)
 	// don't need to update votes field in thread
 	// because there is a trigger in db
-	_, customErr = th.voteUseCase.Create(voteModel)
+	changed, customErr := th.voteUseCase.Create(voteModel)
 	if customErr != nil {
 		return nil, customErr
 	}
-	// TODO: неоптимально
-	thread, customErr = th.GetByID(id)
-	if customErr != nil {
-		return nil, customErr
+	if changed != 0 {
+		if vote == 1 {
+			thread.Votes += changed
+		} else {
+			thread.Votes -= changed
+		}
 	}
 
 	return thread, nil
@@ -104,17 +111,20 @@ func (th *ThreadUseCase) CreateVoteBySlug(slug string, nickname string, vote int
 		return nil, customErr
 	}
 
-	voteModel := th.CreateVote(thread, user, vote)
+	voteModel := th.CreateVoteModel(thread, user, vote)
 	// don't need to update votes field in thread
 	// because there is a trigger in db
-	_, customErr = th.voteUseCase.Create(voteModel)
-
-	// TODO: неоптимально
-	thread, customErr = th.GetBySlug(slug)
+	changed, customErr := th.voteUseCase.Create(voteModel)
 	if customErr != nil {
 		return nil, customErr
 	}
-
+	if changed != 0 {
+		if vote == 1 {
+			thread.Votes += changed
+		} else {
+			thread.Votes -= changed
+		}
+	}
 
 	return thread, nil
 }
@@ -128,7 +138,13 @@ func (th *ThreadUseCase) ChangeByID(id uint64, title, message string) (*models.T
 	if customErr != nil {
 		return nil, customErr
 	}
-	thread.Title, thread.Message = title, message
+	if title != "" {
+		thread.Title = title
+	}
+	if message != "" {
+		thread.Message = message
+	}
+
 
 	err := th.rep.UpdateByID(thread)
 	if err != nil {
@@ -142,7 +158,12 @@ func (th *ThreadUseCase) ChangeBySlug(slug string, title, message string) (*mode
 	if customErr != nil {
 		return nil, customErr
 	}
-	thread.Title, thread.Message = title, message
+	if title != "" {
+		thread.Title = title
+	}
+	if message != "" {
+		thread.Message = message
+	}
 
 	err := th.rep.UpdateBySlug(thread)
 	if err != nil {

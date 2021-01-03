@@ -8,6 +8,7 @@ import (
 	"github.com/technopark_database/internal/helpers/errors"
 	"github.com/technopark_database/internal/models"
 	"io/ioutil"
+	"strings"
 
 	"github.com/technopark_database/internal/post"
 	reader "github.com/technopark_database/tools/requestReader"
@@ -25,8 +26,9 @@ func NewPostHandler(postUseCase post.PostUseCase) *PostHandler {
 
 func (ph *PostHandler) Configure(e *echo.Echo) {
 	e.POST("/api/thread/:slug_or_id/create", ph.CreatePostsHandler())
-	//
-	//e.POST("/api/v1/post/:id/details", ph.ChangeHandler())
+	e.GET("/api/thread/:slug_or_id/posts", ph.GetPosts())
+	e.POST("/api/post/:id/details", ph.ChangeHandler())
+	e.GET("/api/post/:id/details", ph.GetPostDetails())
 }
 
 type Message struct {
@@ -84,5 +86,60 @@ func (ph *PostHandler) ChangeHandler() echo.HandlerFunc {
 		}
 
 		return ctx.JSON(http.StatusOK, post)
+	}
+}
+
+func (ph *PostHandler) GetPosts() echo.HandlerFunc {
+	type Request struct {
+		Sort  string `query:"sort"`
+		Since uint64 `query:"since"`
+		models.Pagination
+	}
+	return func(cntx echo.Context) error {
+		req := &Request{}
+		if err := reader.NewRequestReader(cntx).Read(req); err != nil {
+			logrus.Error(err.DebugMessage)
+			return cntx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
+		}
+
+		slugOrID := cntx.Param("slug_or_id")
+
+		posts, customErr := ph.postUseCase.GetPosts(slugOrID, req.Sort, req.Since, &req.Pagination)
+		if customErr != nil {
+			logrus.Error(customErr.DebugMessage)
+			return cntx.JSON(customErr.HTTPCode, Message{Message: customErr.UserMessage})
+		}
+		return cntx.JSON(http.StatusOK, posts)
+	}
+}
+
+func (ph *PostHandler) GetPostDetails() echo.HandlerFunc {
+	type Request struct {
+		models.Related
+	}
+	return func(cntx echo.Context) error {
+		related := cntx.QueryParam("related")
+
+		relatedModel := &models.Related{}
+
+		if strings.Contains(related, "user") {
+			relatedModel.User = true
+		}
+		if strings.Contains(related, "thread") {
+			relatedModel.Thread = true
+		}
+		if strings.Contains(related, "forum") {
+			relatedModel.Forum = true
+		}
+
+		strID := cntx.Param("id")
+		id, _ := strconv.ParseUint(strID, 10, 64)
+
+		posts, customErr := ph.postUseCase.GetPostInfo(id, relatedModel)
+		if customErr != nil {
+			logrus.Error(customErr.DebugMessage)
+			return cntx.JSON(customErr.HTTPCode, Message{Message: customErr.UserMessage})
+		}
+		return cntx.JSON(http.StatusOK, posts)
 	}
 }
