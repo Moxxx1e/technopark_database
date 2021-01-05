@@ -81,5 +81,5 @@ func main() {
 	threadHandler.Configure(e)
 	postHandler.Configure(e)
 
-	e.Logger.Fatal(e.Start("localhost:5000"))
+	e.Logger.Fatal(e.Start(":5000"))
 }
