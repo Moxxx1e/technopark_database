@@ -2,7 +2,7 @@ package delivery
 
 import (
 	"github.com/labstack/echo/v4"
-	"github.com/sirupsen/logrus"
+	//"github.com/sirupsen/logrus"
 	"github.com/technopark_database/internal/consts"
 	"github.com/technopark_database/internal/forum"
 	"github.com/technopark_database/internal/helpers/errors"
@@ -39,7 +39,7 @@ func (fh *ForumHandler) CreateHandler() echo.HandlerFunc {
 	return func(cntx echo.Context) error {
 		req := &Request{}
 		if err := reader.NewRequestReader(cntx).Read(req); err != nil {
-			logrus.Info(err.DebugMessage)
+			//logrus.Info(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -55,7 +55,7 @@ func (fh *ForumHandler) CreateHandler() echo.HandlerFunc {
 		} else if err == errors.Get(consts.CodeUserDoesNotExist) {
 			return cntx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		} else if err != nil {
-			logrus.Error(err.DebugMessage)
+			//logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -69,7 +69,7 @@ func (fh *ForumHandler) GetInfo() echo.HandlerFunc {
 
 		forum, err := fh.forumUseCase.GetFullDetails(slug)
 		if err != nil {
-			logrus.Error(err.DebugMessage)
+			//logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{err.UserMessage})
 		}
 
@@ -86,7 +86,7 @@ func (fh *ForumHandler) GetUsers() echo.HandlerFunc {
 	return func(cntx echo.Context) error {
 		req := &Request{}
 		if err := reader.NewRequestReader(cntx).Read(req); err != nil {
-			logrus.Info(err.DebugMessage)
+			//logrus.Info(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -94,7 +94,7 @@ func (fh *ForumHandler) GetUsers() echo.HandlerFunc {
 
 		users, err := fh.forumUseCase.GetUsers(slug, req.Since, &req.Pagination)
 		if err != nil {
-			logrus.Error(err.DebugMessage)
+			//logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{err.UserMessage})
 		}
 
@@ -111,7 +111,7 @@ func (fh *ForumHandler) GetThreads() echo.HandlerFunc {
 	return func(cntx echo.Context) error {
 		req := &Request{}
 		if err := reader.NewRequestReader(cntx).Read(req); err != nil {
-			logrus.Info(err.DebugMessage)
+			//logrus.Info(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -119,7 +119,7 @@ func (fh *ForumHandler) GetThreads() echo.HandlerFunc {
 
 		threads, err := fh.forumUseCase.GetThreads(slug, req.Since, &req.Pagination)
 		if err != nil {
-			logrus.Error(err.DebugMessage)
+			//logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{err.UserMessage})
 		}
 

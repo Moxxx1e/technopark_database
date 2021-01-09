@@ -1,18 +1,16 @@
 CREATE EXTENSION IF NOT EXISTS citext;
 DROP TABLE IF EXISTS users, forums, posts, threads, votes, user_forum CASCADE;
 
-CREATE TABLE IF NOT EXISTS users
+CREATE UNLOGGED TABLE IF NOT EXISTS users
 (
     id       serial PRIMARY KEY,
     nickname citext COLLATE "POSIX" UNIQUE NOT NULL,
     fullname text          NOT NULL,
     about    text          NOT NULL,
     email    citext UNIQUE NOT NULL
-
-    -- CONSTRAINT right_nickname CHECK ( nickname ~* '[0-9a-z_]')
 );
 
-CREATE TABLE IF NOT EXISTS forums
+CREATE UNLOGGED TABLE IF NOT EXISTS forums
 (
     id      serial PRIMARY KEY,
     title   text          NOT NULL,
@@ -22,10 +20,9 @@ CREATE TABLE IF NOT EXISTS forums
     -- threads
 
     FOREIGN KEY (profile) REFERENCES users (nickname)
-    -- CONSTRAINT good_slug CHECK (slug SIMILAR TO '^(\d|\w|-|_)*(\w|-|_)(\d|\w|-|_)*$')
 );
 
-CREATE TABLE IF NOT EXISTS threads
+CREATE UNLOGGED TABLE IF NOT EXISTS threads
 (
     id      SERIAL PRIMARY KEY,
     title   text   NOT NULL,
@@ -38,10 +35,9 @@ CREATE TABLE IF NOT EXISTS threads
 
     FOREIGN KEY (author) REFERENCES users (nickname),
     FOREIGN KEY (forum) REFERENCES forums (slug)
-    -- CONSTRAINT right_slug CHECK ( slug SIMILAR TO '^(\d|\w|-|_)*(\w|-|_)(\d|\w|-|_)*$')
 );
 
-CREATE TABLE IF NOT EXISTS votes
+CREATE UNLOGGED TABLE IF NOT EXISTS votes
 (
     thread_id int  NOT NULL,
     user_id   int  NOT NULL,
@@ -52,7 +48,7 @@ CREATE TABLE IF NOT EXISTS votes
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
-CREATE TABLE IF NOT EXISTS posts
+CREATE UNLOGGED TABLE IF NOT EXISTS posts
 (
     id       serial PRIMARY KEY,
     parent   int    NOT NULL,
@@ -69,7 +65,7 @@ CREATE TABLE IF NOT EXISTS posts
     FOREIGN KEY (thread) REFERENCES threads (id)
 );
 
-CREATE TABLE IF NOT EXISTS user_forum
+CREATE UNLOGGED TABLE IF NOT EXISTS user_forum
 (
     nickname citext,
     slug     citext,
@@ -169,3 +165,20 @@ CREATE TRIGGER upd_path
     ON posts
     FOR EACH ROW
 EXECUTE PROCEDURE upd_path();
+
+CREATE OR REPLACE FUNCTION ins_author() RETURNS trigger AS
+$ins_author$
+BEGIN
+    INSERT INTO user_forum(nickname, slug)
+    VALUES(NEW.author, NEW.forum)
+    ON CONFLICT DO NOTHING;
+    RETURN NEW;
+END;
+$ins_author$
+    LANGUAGE plpgsql;
+
+CREATE TRIGGER ins_author_on_ins_thread AFTER INSERT ON threads
+    FOR EACH ROW EXECUTE PROCEDURE ins_author();
+
+CREATE TRIGGER ins_author_on_ins_post AFTER INSERT ON posts
+    FOR EACH ROW EXECUTE PROCEDURE ins_author();

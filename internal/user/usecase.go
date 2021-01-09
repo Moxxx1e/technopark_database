@@ -10,4 +10,5 @@ type UserUseCase interface {
 	Change(user *models.User) (*models.User, *errors.Error)
 	GetUserInfo(nickname string) (*models.User, *errors.Error)
 	IsExist(nickname string) (bool, *errors.Error)
+	CheckNicknames(nickname []string) *errors.Error
 }

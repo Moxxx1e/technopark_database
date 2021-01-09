@@ -2,7 +2,7 @@ package delivery
 
 import (
 	"github.com/labstack/echo/v4"
-	"github.com/sirupsen/logrus"
+	//"github.com/sirupsen/logrus"
 	"github.com/technopark_database/internal/consts"
 	"github.com/technopark_database/internal/helpers/errors"
 	"github.com/technopark_database/internal/models"
@@ -41,7 +41,7 @@ func (uh *UserHandler) CreateProfileHandler() echo.HandlerFunc {
 
 		req := &CreateRequest{}
 		if err := reader.NewRequestReader(context).Read(req); err != nil {
-			logrus.Info(err.DebugMessage)
+			//logrus.Info(err.DebugMessage)
 			return context.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -70,7 +70,7 @@ func (uh *UserHandler) GetProfileHandler() echo.HandlerFunc {
 
 		dbUser, err := uh.userUseCase.GetUserInfo(nickname)
 		if err != nil {
-			logrus.Info(err.DebugMessage)
+			//logrus.Info(err.DebugMessage)
 			return context.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -90,7 +90,7 @@ func (uh *UserHandler) ChangeProfileHandler() echo.HandlerFunc {
 
 		req := &ChangeRequest{}
 		if err := reader.NewRequestReader(context).Read(req); err != nil {
-			logrus.Info(err.DebugMessage)
+			//logrus.Info(err.DebugMessage)
 			return context.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -103,7 +103,7 @@ func (uh *UserHandler) ChangeProfileHandler() echo.HandlerFunc {
 
 		user, customErr := uh.userUseCase.Change(updateUser)
 		if customErr != nil {
-			logrus.Info(customErr.DebugMessage)
+			//logrus.Info(customErr.DebugMessage)
 			return context.JSON(customErr.HTTPCode, Message{Message: customErr.UserMessage})
 		}
 

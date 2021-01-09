@@ -3,7 +3,7 @@ package delivery
 import (
 	"encoding/json"
 	"github.com/labstack/echo/v4"
-	"github.com/sirupsen/logrus"
+	//"github.com/sirupsen/logrus"
 	"github.com/technopark_database/internal/consts"
 	"github.com/technopark_database/internal/helpers/errors"
 	"github.com/technopark_database/internal/models"
@@ -43,14 +43,14 @@ func (ph *PostHandler) CreatePostsHandler() echo.HandlerFunc {
 		body, err := ioutil.ReadAll(ctx.Request().Body)
 		if err != nil {
 			customErr := errors.New(consts.CodeInternalServerError, err)
-			logrus.Error(customErr.DebugMessage)
+			//logrus.Error(customErr.DebugMessage)
 			return ctx.JSON(customErr.HTTPCode, Message{Message: customErr.UserMessage})
 		}
 
 		req := []*models.Post{}
 		if err := json.Unmarshal(body, &req); err != nil {
 			customErr := errors.New(consts.CodeInternalServerError, err)
-			logrus.Error(customErr.DebugMessage)
+			//logrus.Error(customErr.DebugMessage)
 			return ctx.JSON(customErr.HTTPCode, Message{Message: customErr.UserMessage})
 		}
 
@@ -58,7 +58,7 @@ func (ph *PostHandler) CreatePostsHandler() echo.HandlerFunc {
 
 		createdPosts, customErr := ph.postUseCase.CreateMany(slugOrID, req)
 		if customErr != nil {
-			logrus.Error(customErr.DebugMessage)
+			//logrus.Error(customErr.DebugMessage)
 			return ctx.JSON(customErr.HTTPCode, Message{Message: customErr.UserMessage})
 		}
 		return ctx.JSON(http.StatusCreated, createdPosts)
@@ -72,7 +72,7 @@ func (ph *PostHandler) ChangeHandler() echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		req := &Request{}
 		if err := reader.NewRequestReader(ctx).Read(req); err != nil {
-			logrus.Error(err.DebugMessage)
+			//logrus.Error(err.DebugMessage)
 			return ctx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -81,7 +81,7 @@ func (ph *PostHandler) ChangeHandler() echo.HandlerFunc {
 
 		post, err := ph.postUseCase.ChangeByID(id, req.Message)
 		if err != nil {
-			logrus.Error(err.DebugMessage)
+			//logrus.Error(err.DebugMessage)
 			return ctx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -98,7 +98,7 @@ func (ph *PostHandler) GetPosts() echo.HandlerFunc {
 	return func(cntx echo.Context) error {
 		req := &Request{}
 		if err := reader.NewRequestReader(cntx).Read(req); err != nil {
-			logrus.Error(err.DebugMessage)
+			//logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -106,7 +106,7 @@ func (ph *PostHandler) GetPosts() echo.HandlerFunc {
 
 		posts, customErr := ph.postUseCase.GetPosts(slugOrID, req.Sort, req.Since, &req.Pagination)
 		if customErr != nil {
-			logrus.Error(customErr.DebugMessage)
+			//logrus.Error(customErr.DebugMessage)
 			return cntx.JSON(customErr.HTTPCode, Message{Message: customErr.UserMessage})
 		}
 		return cntx.JSON(http.StatusOK, posts)
@@ -137,7 +137,7 @@ func (ph *PostHandler) GetPostDetails() echo.HandlerFunc {
 
 		posts, customErr := ph.postUseCase.GetPostInfo(id, relatedModel)
 		if customErr != nil {
-			logrus.Error(customErr.DebugMessage)
+			//logrus.Error(customErr.DebugMessage)
 			return cntx.JSON(customErr.HTTPCode, Message{Message: customErr.UserMessage})
 		}
 		return cntx.JSON(http.StatusOK, posts)

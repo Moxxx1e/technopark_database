@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/technopark_database/internal/models"
 	"github.com/technopark_database/internal/user"
@@ -11,6 +12,36 @@ import (
 
 type UserPgRepository struct {
 	db *sql.DB
+}
+
+func buildValuesQuery(valuesCount int) string {
+	var values []string
+	for i := 1; i <= valuesCount; i++ {
+		values = append(values, fmt.Sprintf("$%d", i))
+	}
+	valuesQuery := fmt.Sprintf("(%s)", strings.Join(values, ", "))
+	return valuesQuery
+}
+
+func (ur *UserPgRepository) SelectCountNicknames(nicknames []string) (int, error) {
+	selectQuery := "SELECT COUNT(nickname) FROM users WHERE nickname IN"
+	valuesQuery := buildValuesQuery(len(nicknames))
+	query := strings.Join([]string{
+		selectQuery,
+		valuesQuery,
+	}, " ")
+
+	var values []interface{}
+	for _, nickname := range nicknames {
+		values = append(values, nickname)
+	}
+
+	var usersCount int
+	err := ur.db.QueryRow(query, values...).Scan(&usersCount)
+	if err != nil {
+		return 0, err
+	}
+	return usersCount, nil
 }
 
 func NewUserPgRepository(db *sql.DB) user.UserRepository {

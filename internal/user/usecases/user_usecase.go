@@ -126,3 +126,30 @@ func (uc *UserUseCase) GetUserInfo(nickname string) (*models.User, *errors.Error
 	}
 	return dbUser, nil
 }
+
+func removeDuplicateValues(stringSlice []string) []string {
+	keys := make(map[string]bool)
+	result := []string{}
+
+	for _, entry := range stringSlice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			result = append(result, entry)
+		}
+	}
+	return result
+}
+
+func (uc *UserUseCase) CheckNicknames(nicknames []string) *errors.Error {
+	uniqNicknames := removeDuplicateValues(nicknames)
+
+	countNicknames, err := uc.rep.SelectCountNicknames(uniqNicknames)
+	if err != nil {
+		return errors.New(consts.CodeInternalServerError, err)
+	}
+	if countNicknames != len(uniqNicknames) {
+		return errors.Get(consts.CodeUserDoesNotExist)
+	}
+
+	return nil
+}

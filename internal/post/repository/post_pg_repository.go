@@ -9,6 +9,7 @@ import (
 	"github.com/technopark_database/internal/models"
 	"github.com/technopark_database/internal/post"
 	"strings"
+	"time"
 )
 
 type PostPgRepository struct {
@@ -33,7 +34,10 @@ func (rep *PostPgRepository) InsertMany(posts []*models.Post) error {
 		return err
 	}
 
+	location, _ := time.LoadLocation("UTC")
+	createdTime := time.Now().In(location).Round(time.Microsecond)
 	for _, post := range posts {
+		post.Created = createdTime
 		err := stmt.QueryRow(post.Parent, post.Author, post.Message,
 			post.IsEdited, post.Forum, post.Thread, post.Created).
 			Scan(&post.ID)

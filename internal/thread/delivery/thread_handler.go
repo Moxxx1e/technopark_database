@@ -2,7 +2,6 @@ package delivery
 
 import (
 	"github.com/labstack/echo/v4"
-	"github.com/sirupsen/logrus"
 	"github.com/technopark_database/internal/consts"
 	"github.com/technopark_database/internal/helpers/errors"
 	"github.com/technopark_database/internal/models"
@@ -43,7 +42,7 @@ func (th *ThreadHandler) CreateThreadHandler() echo.HandlerFunc {
 	return func(cntx echo.Context) error {
 		req := &Request{}
 		if err := reader.NewRequestReader(cntx).Read(req); err != nil {
-			logrus.Error(err.DebugMessage)
+			//logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -59,11 +58,11 @@ func (th *ThreadHandler) CreateThreadHandler() echo.HandlerFunc {
 		}
 		createdThread, err := th.threadUseCase.Create(thread)
 		if err == errors.Get(consts.CodeThreadAlreadyExist) {
-			logrus.Error(err.DebugMessage)
+			//logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, createdThread)
 		}
 		if err != nil {
-			logrus.Error(err.DebugMessage)
+			//logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -82,13 +81,13 @@ func (th *ThreadHandler) GetDetailsHandler() echo.HandlerFunc {
 		if err != nil {
 			threadDetails, customErr = th.threadUseCase.GetBySlug(slugOrID)
 			if customErr != nil {
-				logrus.Error(customErr.DebugMessage)
+				//logrus.Error(customErr.DebugMessage)
 				return cntx.JSON(customErr.HTTPCode, Message{customErr.UserMessage})
 			}
 		} else {
 			threadDetails, customErr = th.threadUseCase.GetByID(id)
 			if customErr != nil {
-				logrus.Error(customErr.DebugMessage)
+				//logrus.Error(customErr.DebugMessage)
 				return cntx.JSON(customErr.HTTPCode, Message{customErr.UserMessage})
 			}
 		}
@@ -106,7 +105,7 @@ func (th *ThreadHandler) VoteHandler() echo.HandlerFunc {
 	return func(cntx echo.Context) error {
 		req := &Request{}
 		if err := reader.NewRequestReader(cntx).Read(req); err != nil {
-			logrus.Error(err.DebugMessage)
+			//logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -119,13 +118,13 @@ func (th *ThreadHandler) VoteHandler() echo.HandlerFunc {
 		if err != nil {
 			threadDetails, customErr = th.threadUseCase.CreateVoteBySlug(slugOrID, req.Nickname, req.Vote)
 			if customErr != nil {
-				logrus.Error(customErr.DebugMessage)
+				//logrus.Error(customErr.DebugMessage)
 				return cntx.JSON(customErr.HTTPCode, Message{customErr.UserMessage})
 			}
 		} else {
 			threadDetails, customErr = th.threadUseCase.CreateVoteByID(id, req.Nickname, req.Vote)
 			if customErr != nil {
-				logrus.Error(customErr.DebugMessage)
+				//logrus.Error(customErr.DebugMessage)
 				return cntx.JSON(customErr.HTTPCode, Message{customErr.UserMessage})
 			}
 		}
@@ -143,7 +142,7 @@ func (th *ThreadHandler) ChangeThreadHandler() echo.HandlerFunc {
 	return func(cntx echo.Context) error {
 		req := &Request{}
 		if err := reader.NewRequestReader(cntx).Read(req); err != nil {
-			logrus.Error(err.DebugMessage)
+			//logrus.Error(err.DebugMessage)
 			return cntx.JSON(err.HTTPCode, Message{Message: err.UserMessage})
 		}
 
@@ -156,13 +155,13 @@ func (th *ThreadHandler) ChangeThreadHandler() echo.HandlerFunc {
 		if err != nil {
 			threadDetails, customErr = th.threadUseCase.ChangeBySlug(slugOrID, req.Title, req.Message)
 			if customErr != nil {
-				logrus.Error(customErr.DebugMessage)
+				//logrus.Error(customErr.DebugMessage)
 				return cntx.JSON(customErr.HTTPCode, Message{customErr.UserMessage})
 			}
 		} else {
 			threadDetails, customErr = th.threadUseCase.ChangeByID(id, req.Title, req.Message)
 			if customErr != nil {
-				logrus.Error(customErr.DebugMessage)
+				//logrus.Error(customErr.DebugMessage)
 				return cntx.JSON(customErr.HTTPCode, Message{customErr.UserMessage})
 			}
 		}

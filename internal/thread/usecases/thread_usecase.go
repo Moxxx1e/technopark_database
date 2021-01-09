@@ -53,11 +53,6 @@ func (th *ThreadUseCase) Create(thread *models.Thread) (*models.Thread, *errors.
 		return nil, errors.New(consts.CodeInternalServerError, err)
 	}
 
-	customErr = th.forumUseCase.AddForumUser(author.Nickname, existedForum.Slug)
-	if customErr != nil {
-		return nil, customErr
-	}
-
 	return thread, nil
 }
 

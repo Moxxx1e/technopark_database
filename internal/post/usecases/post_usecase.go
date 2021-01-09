@@ -10,7 +10,6 @@ import (
 	"github.com/technopark_database/internal/thread"
 	"github.com/technopark_database/internal/user"
 	"strconv"
-	"time"
 )
 
 type PostUseCase struct {
@@ -42,42 +41,24 @@ func (uc *PostUseCase) CreateMany(slugOrID string, posts []*models.Post) ([]*mod
 		return []*models.Post{}, nil
 	}
 
-	createdTime := time.Now()
-	existedPosts, customErr := uc.threadUseCase.GetPostsByID(thread.ID)
+	var nicknames []string
+	for _, post := range posts {
+		nicknames = append(nicknames, post.Author)
+		post.Forum = thread.Forum
+		//post.Created = createdTime
+		post.Thread = thread.ID
+	}
+
+	customErr = uc.userUseCase.CheckNicknames(nicknames)
 	if customErr != nil {
 		return nil, customErr
 	}
 
-	for _, post := range posts {
-		post.Forum = thread.Forum
-		post.Created = createdTime
-		post.Thread = thread.ID
-
-		_, customErr := uc.userUseCase.GetUserInfo(post.Author)
-		if customErr != nil {
-			return nil, customErr
-		}
-
-		if post.Parent != 0 {
-			parentFlag := false
-			for _, existedPost := range existedPosts {
-				if post.Parent == existedPost.ID {
-					parentFlag = true
-					break
-				}
-			}
-			if parentFlag != true {
-				return nil, errors.Get(consts.CodeParentPostDoesNotExistInThread)
-			}
-		}
-		customErr = uc.forumUseCase.AddForumUser(post.Author, post.Forum)
-		if customErr != nil {
-			return nil, customErr
-		}
-	}
-
 	err := uc.rep.InsertMany(posts)
 	if err != nil {
+		if err.Error() == "pq: Can not find parent post into thread" {
+			return nil, errors.Get(consts.CodeParentPostDoesNotExistInThread)
+		}
 		return nil, errors.New(consts.CodeInternalServerError, err)
 	}
 
