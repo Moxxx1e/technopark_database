@@ -75,13 +75,13 @@ CREATE UNLOGGED TABLE IF NOT EXISTS posts
     created  timestamptz
 );
 CREATE INDEX posts_thread_id on posts (thread, created, id);
-CREATE INDEX posts_path on posts (path);
+-- CREATE INDEX posts_path on posts (path);
 CREATE INDEX posts_path1_path on posts ((path[1]), path);
 -- CREATE INDEX posts_created ON posts (created);
-CREATE INDEX IF NOT EXISTS posts_cover
-     ON posts (id, parent, path, author, message, isEdited, forum, thread, created);
+-- CREATE INDEX IF NOT EXISTS posts_cover
+--      ON posts (id, parent, path, author, message, isEdited, forum, thread, created);
 CREATE INDEX posts_thread ON posts (thread, parent, path);
- CREATE INDEX posts_forum ON posts (forum);
+-- CREATE INDEX posts_forum ON posts (forum);
 
 
 CREATE UNLOGGED TABLE IF NOT EXISTS user_forum

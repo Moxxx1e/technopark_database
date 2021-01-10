@@ -24,8 +24,8 @@ func (rr *RequestReader) Read(request interface{}) *errors.Error {
 		return errors.New(CodeInternalServerError, err)
 	}
 
-	if err := rr.validator.Struct(request); err != nil {
-		return errors.Get(CodeBadRequest)
-	}
+	//if err := rr.validator.Struct(request); err != nil {
+	//	return errors.Get(CodeBadRequest)
+	//}
 	return nil
 }

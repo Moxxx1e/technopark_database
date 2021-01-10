@@ -8,6 +8,4 @@ import (
 type VoteUseCase interface {
 	Create(vote *models.Vote) (int, *errors.Error)
 	Get(threadID uint64, userID uint64) (*models.Vote, *errors.Error)
-	Update(vote *models.Vote) *errors.Error
-	Delete(vote *models.Vote) *errors.Error
 }

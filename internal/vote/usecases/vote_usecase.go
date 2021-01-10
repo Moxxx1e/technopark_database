@@ -45,36 +45,6 @@ func (uc *VoteUseCase) Get(threadID uint64, userID uint64) (*models.Vote, *error
 	return vote, nil
 }
 
-func (uc *VoteUseCase) Update(vote *models.Vote) *errors.Error {
-	dbVote, customErr := uc.Get(vote.ThreadID, vote.UserID)
-	if customErr != nil {
-		return customErr
-	}
-
-	if dbVote.Likes == vote.Likes {
-		return errors.Get(consts.CodeVoteAlreadyExist)
-	}
-
-	err := uc.rep.Update(vote)
-	if err != nil {
-		return errors.New(consts.CodeInternalServerError, err)
-	}
-	return nil
-}
-
-func (uc *VoteUseCase) Delete(vote *models.Vote) *errors.Error {
-	_, customErr := uc.Get(vote.ThreadID, vote.UserID)
-	if customErr != nil {
-		return customErr
-	}
-
-	err := uc.rep.Delete(vote)
-	if err != nil {
-		return errors.New(consts.CodeInternalServerError, err)
-	}
-	return nil
-}
-
 func NewVoteUseCase(rep vote.VoteRepository) vote.VoteUseCase {
 	return &VoteUseCase{rep: rep}
 }
