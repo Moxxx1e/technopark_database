@@ -5,9 +5,9 @@ CREATE UNLOGGED TABLE IF NOT EXISTS users
 (
     id       serial PRIMARY KEY,
     nickname citext COLLATE "POSIX" UNIQUE NOT NULL,
-    fullname text          NOT NULL,
-    about    text          NOT NULL,
-    email    citext UNIQUE NOT NULL
+    fullname text                          NOT NULL,
+    about    text                          NOT NULL,
+    email    citext UNIQUE                 NOT NULL
 );
 
 CREATE UNLOGGED TABLE IF NOT EXISTS forums
@@ -16,8 +16,8 @@ CREATE UNLOGGED TABLE IF NOT EXISTS forums
     title   text          NOT NULL,
     profile citext        NOT NULL,
     slug    citext UNIQUE NOT NULL,
-    -- posts
-    -- threads
+    posts   int DEFAULT 0,
+    threads int DEFAULT 0,
 
     FOREIGN KEY (profile) REFERENCES users (nickname)
 );
@@ -74,7 +74,6 @@ CREATE UNLOGGED TABLE IF NOT EXISTS user_forum
     FOREIGN KEY (nickname) REFERENCES users (nickname),
     FOREIGN KEY (slug) REFERENCES forums (slug)
 );
-
 
 CREATE OR REPLACE FUNCTION votes_ins_upd() RETURNS trigger AS
 $$
@@ -150,7 +149,7 @@ BEGIN
 
     SELECT thread INTO parent_thread FROM posts WHERE id = NEW.parent;
     IF NOT FOUND OR NEW.thread <> parent_thread THEN
-        RAISE EXCEPTION 'Can not find parent post into thread';
+        RAISE EXCEPTION 'Parent post does not exist in thread';
     END IF;
 
     SELECT path INTO parent_path FROM posts WHERE id = NEW.parent;
@@ -166,19 +165,59 @@ CREATE TRIGGER upd_path
     FOR EACH ROW
 EXECUTE PROCEDURE upd_path();
 
-CREATE OR REPLACE FUNCTION ins_author() RETURNS trigger AS
+CREATE OR REPLACE FUNCTION user_forum_ins() RETURNS trigger AS
 $ins_author$
 BEGIN
     INSERT INTO user_forum(nickname, slug)
-    VALUES(NEW.author, NEW.forum)
+    VALUES (NEW.author, NEW.forum)
     ON CONFLICT DO NOTHING;
     RETURN NEW;
 END;
 $ins_author$
     LANGUAGE plpgsql;
 
-CREATE TRIGGER ins_author_on_ins_thread AFTER INSERT ON threads
-    FOR EACH ROW EXECUTE PROCEDURE ins_author();
+CREATE TRIGGER user_forum_ins_threads
+    AFTER INSERT
+    ON threads
+    FOR EACH ROW
+EXECUTE PROCEDURE user_forum_ins();
 
-CREATE TRIGGER ins_author_on_ins_post AFTER INSERT ON posts
-    FOR EACH ROW EXECUTE PROCEDURE ins_author();
+CREATE TRIGGER user_forum_ins_posts
+    AFTER INSERT
+    ON posts
+    FOR EACH ROW
+EXECUTE PROCEDURE user_forum_ins();
+
+CREATE OR REPLACE FUNCTION posts_inc() RETURNS trigger AS
+$$
+BEGIN
+    UPDATE forums
+    SET posts = posts + 1
+    WHERE slug = NEW.forum;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER posts_inc
+    AFTER INSERT
+    ON posts
+    FOR EACH ROW
+EXECUTE PROCEDURE posts_inc();
+
+CREATE OR REPLACE FUNCTION threads_inc() RETURNS trigger AS
+$$
+BEGIN
+    UPDATE forums
+    SET threads = threads + 1
+    WHERE slug = NEW.forum;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER threads_inc
+    AFTER INSERT
+    ON threads
+    FOR EACH ROW
+EXECUTE PROCEDURE threads_inc();

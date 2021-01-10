@@ -93,34 +93,16 @@ func (rep *ForumPgRepository) Select(slug string) (*models.Forum, error) {
 }
 
 func (rep *ForumPgRepository) SelectFull(slug string) (*models.Forum, error) {
-	forum, err := rep.Select(slug)
-	if err != nil {
-		return nil, err
-	}
-	threads, posts, err := rep.SelectCounts(slug)
-	if err != nil {
-		return nil, err
-	}
-	forum.Threads, forum.Posts = threads, posts
-	return forum, nil
-}
-
-func (rep *ForumPgRepository) SelectCounts(slug string) (int, int, error) {
-	var threadsCount, postsCount int
+	forum := &models.Forum{}
 	err := rep.db.QueryRow(`
-		SELECT count(t.id)
-		FROM forums f
-		JOIN threads t on f.slug = t.forum
-		WHERE f.slug = $1`, slug).Scan(&threadsCount)
-	err = rep.db.QueryRow(`
-		SELECT count(p.id)
-		FROM forums f
-		JOIN posts p ON f.slug = p.forum
-		WHERE f.slug=$1`, slug).Scan(&postsCount)
+		SELECT title, profile, slug, posts, threads
+		FROM forums
+		WHERE slug = $1`, slug).Scan(
+		&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
 	if err != nil {
-		return 0, 0, err
+		return nil, err
 	}
-	return threadsCount, postsCount, nil
+	return forum, nil
 }
 
 func (rep *ForumPgRepository) SelectThreads(forumSlug string,

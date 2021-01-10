@@ -56,7 +56,7 @@ func (uc *PostUseCase) CreateMany(slugOrID string, posts []*models.Post) ([]*mod
 
 	err := uc.rep.InsertMany(posts)
 	if err != nil {
-		if err.Error() == "pq: Can not find parent post into thread" {
+		if err.Error() == "pq: Parent post does not exist in thread" {
 			return nil, errors.Get(consts.CodeParentPostDoesNotExistInThread)
 		}
 		return nil, errors.New(consts.CodeInternalServerError, err)
