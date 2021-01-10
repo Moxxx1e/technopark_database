@@ -10,6 +10,7 @@ type ForumUseCase interface {
 	AddForumUser(nickname string, slug string) *errors.Error
 	GetDetails(slug string) (*models.Forum, *errors.Error)
 	GetFullDetails(slug string) (*models.Forum, *errors.Error)
+	UpdatePosts(slug string, count int) *errors.Error
 	GetUsers(slug string, since string, pagination *models.Pagination) ([]*models.User, *errors.Error)
 	GetThreads(slug string, since string, pagination *models.Pagination) ([]*models.Thread, *errors.Error)
 }

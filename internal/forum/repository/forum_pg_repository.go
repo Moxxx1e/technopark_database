@@ -65,6 +65,30 @@ func (rep *ForumPgRepository) InsertUserForum(nickname string, slug string) erro
 	return nil
 }
 
+func (rep *ForumPgRepository) UpdatePostsCount(slug string, count int) error {
+	tx, err := rep.db.BeginTx(context.Background(), &sql.TxOptions{})
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		UPDATE forums
+		SET posts = posts + $1
+		WHERE slug=$2`, count, slug)
+	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			logrus.Error(err)
+		}
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (rep *ForumPgRepository) SelectUserForum(nickname string, slug string) (string, string, error) {
 	var dbNickname, dbSlug string
 	err := rep.db.QueryRow(`

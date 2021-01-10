@@ -62,6 +62,11 @@ func (uc *PostUseCase) CreateMany(slugOrID string, posts []*models.Post) ([]*mod
 		return nil, errors.New(consts.CodeInternalServerError, err)
 	}
 
+	customErr = uc.forumUseCase.UpdatePosts(thread.Forum, len(posts))
+	if customErr != nil {
+		return nil, customErr
+	}
+
 	return posts, nil
 }
 

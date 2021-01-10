@@ -67,25 +67,22 @@ CREATE UNLOGGED TABLE IF NOT EXISTS posts
     id       serial PRIMARY KEY,
     parent   int    NOT NULL,
     path     int[]  NOT NULL,
-    author   citext NOT NULL,
+    author   citext NOT NULL REFERENCES users (nickname),
     message  text   NOT NULL,
     isEdited bool   NOT NULL DEFAULT false,
-    forum    citext,
-    thread   int,
-    created  timestamptz,
-
-    FOREIGN KEY (author) REFERENCES users (nickname),
-    FOREIGN KEY (forum) REFERENCES forums (slug),
-    FOREIGN KEY (thread) REFERENCES threads (id)
+    forum    citext REFERENCES forums (slug),
+    thread   int REFERENCES threads (id),
+    created  timestamptz
 );
-CREATE INDEX posts_thread_id on posts (thread, id);
+CREATE INDEX posts_thread_id on posts (thread, created, id);
 CREATE INDEX posts_path on posts (path);
 CREATE INDEX posts_path1_path on posts ((path[1]), path);
-CREATE INDEX posts_created ON posts (created);
+-- CREATE INDEX posts_created ON posts (created);
 CREATE INDEX IF NOT EXISTS posts_cover
-    ON posts (id, parent, path, author, message, isEdited, forum, thread, created);
-CREATE INDEX posts_thread ON posts (thread);
-CREATE INDEX posts_forum ON posts (forum);
+     ON posts (id, parent, path, author, message, isEdited, forum, thread, created);
+CREATE INDEX posts_thread ON posts (thread, parent, path);
+ CREATE INDEX posts_forum ON posts (forum);
+
 
 CREATE UNLOGGED TABLE IF NOT EXISTS user_forum
 (
@@ -213,22 +210,22 @@ CREATE TRIGGER user_forum_ins_posts
     FOR EACH ROW
 EXECUTE PROCEDURE user_forum_ins();
 
-CREATE OR REPLACE FUNCTION posts_inc() RETURNS trigger AS
-$$
-BEGIN
-    UPDATE forums
-    SET posts = posts + 1
-    WHERE slug = NEW.forum;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER posts_inc
-    AFTER INSERT
-    ON posts
-    FOR EACH ROW
-EXECUTE PROCEDURE posts_inc();
+-- CREATE OR REPLACE FUNCTION posts_inc() RETURNS trigger AS
+-- $$
+-- BEGIN
+--     UPDATE forums
+--     SET posts = posts + 1
+--     WHERE slug = NEW.forum;
+--
+--     RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+--
+-- CREATE TRIGGER posts_inc
+--     AFTER INSERT
+--     ON posts
+--     FOR EACH ROW
+-- EXECUTE PROCEDURE posts_inc();
 
 CREATE OR REPLACE FUNCTION threads_inc() RETURNS trigger AS
 $$

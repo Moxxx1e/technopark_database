@@ -121,4 +121,10 @@ func (uc *ForumUseCase) IsExist(slug string) (*models.Forum, *errors.Error) {
 	return nil, nil
 }
 
-//TODO: isUserExist
+func (uc *ForumUseCase) UpdatePosts(slug string, count int) *errors.Error {
+	err := uc.rep.UpdatePostsCount(slug, count)
+	if err != nil {
+		return errors.New(consts.CodeInternalServerError, err)
+	}
+	return nil
+}
