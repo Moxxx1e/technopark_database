@@ -10,6 +10,10 @@ CREATE UNLOGGED TABLE IF NOT EXISTS users
     email    citext UNIQUE                 NOT NULL
 );
 
+CREATE INDEX users_cover ON users (nickname, fullname, about, email);
+CREATE INDEX users_nickname ON users using hash (nickname);
+CREATE INDEX users_email ON users using hash (email);
+
 CREATE UNLOGGED TABLE IF NOT EXISTS forums
 (
     id      serial PRIMARY KEY,
@@ -21,6 +25,9 @@ CREATE UNLOGGED TABLE IF NOT EXISTS forums
 
     FOREIGN KEY (profile) REFERENCES users (nickname)
 );
+CREATE INDEX forums_cover ON forums (title, profile, slug, posts, threads);
+CREATE INDEX forums_slug ON forums USING hash (slug);
+CREATE INDEX forums_user ON forums (profile);
 
 CREATE UNLOGGED TABLE IF NOT EXISTS threads
 (
@@ -36,6 +43,12 @@ CREATE UNLOGGED TABLE IF NOT EXISTS threads
     FOREIGN KEY (author) REFERENCES users (nickname),
     FOREIGN KEY (forum) REFERENCES forums (slug)
 );
+CREATE INDEX threads_cover ON threads (title, author, forum, message, votes, slug, created);
+CREATE INDEX threads_created_forum ON threads (created, forum);
+CREATE INDEX threads_created ON threads (created);
+CREATE INDEX threads_slug ON threads using hash (slug);
+CREATE INDEX threads_author ON threads (author);
+CREATE INDEX threads_forum ON threads (forum);
 
 CREATE UNLOGGED TABLE IF NOT EXISTS votes
 (
@@ -47,6 +60,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS votes
     FOREIGN KEY (thread_id) REFERENCES threads (id),
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
+CREATE UNIQUE INDEX votes_thread_user ON votes (thread_id, user_id);
 
 CREATE UNLOGGED TABLE IF NOT EXISTS posts
 (
@@ -64,6 +78,14 @@ CREATE UNLOGGED TABLE IF NOT EXISTS posts
     FOREIGN KEY (forum) REFERENCES forums (slug),
     FOREIGN KEY (thread) REFERENCES threads (id)
 );
+CREATE INDEX posts_thread_id on posts (thread, id);
+CREATE INDEX posts_path on posts (path);
+CREATE INDEX posts_path1_path on posts ((path[1]), path);
+CREATE INDEX posts_created ON posts (created);
+CREATE INDEX IF NOT EXISTS posts_cover
+    ON posts (id, parent, path, author, message, isEdited, forum, thread, created);
+CREATE INDEX posts_thread ON posts (thread);
+CREATE INDEX posts_forum ON posts (forum);
 
 CREATE UNLOGGED TABLE IF NOT EXISTS user_forum
 (
@@ -74,6 +96,9 @@ CREATE UNLOGGED TABLE IF NOT EXISTS user_forum
     FOREIGN KEY (nickname) REFERENCES users (nickname),
     FOREIGN KEY (slug) REFERENCES forums (slug)
 );
+CREATE INDEX user_forum_nickname ON user_forum (nickname);
+CREATE INDEX user_forum_slug ON user_forum (slug);
+CREATE INDEX user_forum_nickname_slug ON user_forum (nickname, slug);
 
 CREATE OR REPLACE FUNCTION votes_ins_upd() RETURNS trigger AS
 $$
